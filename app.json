@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mi-app",
-    "slug": "mi-app",
+    "name": "BooFi",
+    "slug": "BooFi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
