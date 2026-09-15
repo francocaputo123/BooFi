@@ -1,4 +1,4 @@
-export const Colors = {
+export const COLORS = {
     text: '#1f1208',
     background: '#fdfaf6',
     primary: '#87592f',
@@ -9,7 +9,7 @@ export const Colors = {
     border: '#e6dacb',
 }
 
-export const Spacing = {
+export const SPACING = {
     xs: 4,
     s: 8,
     m: 16,
@@ -18,7 +18,7 @@ export const Spacing = {
     xxl: 48,
 }
 
-export const FontSize = {
+export const FONTSIZE = {
     xs: 12,
     s: 14,
     m: 16,
