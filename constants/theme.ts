@@ -1,12 +1,13 @@
 export const COLORS = {
     text: '#1f1208',
     background: '#fdfaf6',
-    primary: '#87592f',
-    secondary: '#a0e498',
-    accent: '#64d684',
+    primary: '#a06b39',
+    secondary: '#75bb6d',
+    accent: '#279f49',
     surface: '#f3ece1',
     textSecondary: '#625345',
     border: '#e6dacb',
+    danger : '#D8000C'
 }
 
 export const SPACING = {
