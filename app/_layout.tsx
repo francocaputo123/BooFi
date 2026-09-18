@@ -1,11 +1,18 @@
 import { Stack } from "expo-router";
 
 const RootLayout = () => {
-    return(
-        <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }}/>
+
+    const isAuthenticated = false
+
+    return (
+        <Stack screenOptions={{ headerShown: false }}>
+            {!isAuthenticated ? (
+                <Stack.Screen name="(auth)" />
+            ) : (
+                <Stack.Screen name="(tabs)" />
+            )}
         </Stack>
-    )
+    );
 }
 
 export default RootLayout
