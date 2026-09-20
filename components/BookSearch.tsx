@@ -5,7 +5,7 @@ import BOOKS from "../data/books"
 const BookSearch = () => {
     const [searchText, setSearchText] = useState("")
 
-    // para que la búsqueda no dependa de mayúsculas ni espacios
+    // para que la busqueda no dependa de mayusculas ni espacios
     const search = searchText.toLowerCase().trim()
 
     const filteredBooks = BOOKS.filter((book) => {
