@@ -4,7 +4,6 @@ import authStore from "@/store/authStore";
 const RootLayout = () => {
 
     const isAuthenticated = authStore((state) => state.isAuthenticated)
-
     return (
         <Stack screenOptions={{ headerShown: false }}>
             {!isAuthenticated ? (
