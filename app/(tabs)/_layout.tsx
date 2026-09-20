@@ -3,7 +3,7 @@ import { Tabs } from "expo-router"
 const RootLayout = () => {
     return(
         <Tabs>
-            <Tabs.Screen name="index" options={{ title : 'Home'}} />
+            <Tabs.Screen name="Index" options={{ title : 'Home'}} />
         </Tabs>
     )
 }
