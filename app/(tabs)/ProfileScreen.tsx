@@ -1,21 +1,7 @@
-import { Text, View, StyleSheet } from 'react-native';
+import BookSearch from "../../components/BookSearch"
 
-export default function ProfileScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Pantalla de perfil</Text>
-    </View>
-  );
+const Index = () => {
+    return <BookSearch />
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#25292e',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    color: '#fff',
-  },
-});
+export default Index
