@@ -1,32 +1,34 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { authTypes } from "@/types/auth.types";
+import { persist, createJSONStorage } from 'zustand/middleware'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { authState, authTypes} from "@/types/auth.types";
 
-const authStore = create(
+const authStore = create<authState>()(
     persist(
         set => ({
+            public_id : "",
             email : "",
-            password : "",
             isAuthenticated : false,
 
-            setAuthData : ({email, password} : authTypes) => {
+            setAuthData : ({public_id,email} : authTypes) => {
                 set({
+                    public_id : public_id,
                     email : email,
-                    password : password,
                     isAuthenticated : true
                 })
             },
 
             loggout : () => {
                 set({
+                    public_id : "",
                     email : "",
-                    password : "",
                     isAuthenticated : false
                 })
             }
         }),
         {
-            name : "authStorage"
+            name : "authStorage",
+            storage: createJSONStorage(() => AsyncStorage),
         }
     )
 )

@@ -7,7 +7,10 @@ export const COLORS = {
     surface: '#f3ece1',
     textSecondary: '#625345',
     border: '#e6dacb',
-    danger : '#D8000C'
+    danger : '#FFD2D2' ,
+    dangerText : '#D8000C',
+    success: '#D2EED1', 
+    successText: '#1B6A31',
 }
 
 export const SPACING = {

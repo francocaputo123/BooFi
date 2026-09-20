@@ -12,7 +12,16 @@ export interface loginForm {
     password : string
 }
 
-export interface authTypes {
+export interface authState {
+    public_id : string,
     email : string,
-    password : string
+    isAuthenticated : boolean,
+    setAuthData: (data: authTypes) => void,
+    loggout : () => void
+}
+
+export interface authTypes {
+    public_id : string,
+    email : string,
+    isAuthenticated : boolean
 }

@@ -1,7 +1,7 @@
 import { Text, View,  TextInput ,StyleSheet, KeyboardAvoidingView, ScrollView, Platform, Pressable } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 
 //constantes
 import { COLORS, FONTSIZE, SPACING } from '@/constants/theme';
@@ -16,9 +16,17 @@ import Card from "@/components/Card"
 import { registerForm ,viewStatus} from '@/types/auth.types';
 
 //schema
-import { loginSchema,registerSchema } from '@/schema/auth.schema';
+import { loginSchema, registerSchema } from '@/schema/auth.schema';
+
+//db
+import * as authController from '@/services/authService'
+
+//store
+import authStore from '@/store/authStore';
 
 const Auth = () => {
+
+  const router = useRouter()
 
   const [form, setForm] = useState<registerForm>({
     username : "",
@@ -27,9 +35,13 @@ const Auth = () => {
     confirmPassword : ""
   })
 
+  const setAuth = authStore((data) => data.setAuthData)
+  
   const [formView, setFormView] = useState<viewStatus>("login")
 
   const [error, setError] = useState<string[]>([])
+
+  const [success, setSuccess] = useState<string>("")
 
   const handleChange = (name : string, value : string) => {
     setError([])
@@ -43,18 +55,22 @@ const Auth = () => {
 
   const actions = {
 
-    handleLogin : () => {
-      const { email, password } = form
+    handleLogin : async () => {
+
+      const user = {
+        email : form.email,
+        password : form.password
+      }
 
       const notAllowed = [null,"",undefined]
 
-      const missing = [email, password].some(value => notAllowed.includes(value))
+      const missing = Object.values(user).some(value => notAllowed.includes(value))
 
       if(missing){
         return setError(["Todos los campos son obligatorios"])
       }
 
-      const result = loginSchema.safeParse({ email, password })
+      const result = loginSchema.safeParse(user)
 
       if(!result.success) {
         const errors = result.error.issues.map(error => error.message)
@@ -62,9 +78,25 @@ const Auth = () => {
         return setError(errors)
       }
 
+      try {
+        const data = await authController.loginUser(user)
+
+        if(data) {
+          setAuth({
+            public_id : data.public_id,
+            email : data.email,
+            isAuthenticated : true
+          })
+
+          router.navigate("/(tabs)/Index")
+        }
+
+      } catch (error : any) {
+        return setError([error?.message])
+      }
 
     },
-    handleRegister : () => {
+    handleRegister : async () => {
 
       const notAllowed = [null,"",undefined]
 
@@ -80,6 +112,21 @@ const Auth = () => {
         const errors = result.error.issues.map(error => error.message)
 
         return setError(errors)
+      }
+
+      try {
+          const result = await authController.registerUser(form)
+
+          if(result) {
+            setSuccess("Registro exitoso")
+            
+            return setTimeout(() => {
+              setFormView("login")
+            },3000)
+          }
+
+      } catch (error : any) {
+        return setError([error?.message])
       }
 
     }
@@ -176,6 +223,7 @@ const Auth = () => {
                             <TextInput
                             onChangeText={(text) => handleChange(key, text)}
                             placeholder={value.placeholder}
+                            secureTextEntry={value.type == "password" ? true : false}
                             style={styles.input}
                             />
                           </View>
@@ -190,6 +238,21 @@ const Auth = () => {
                         error.map((error, i) => {
                           return(
                             <Text style={styles.errorText} key={i}>
+                              - {error}
+                            </Text>
+                          )
+                        })
+                      }
+                    </View>
+                  )
+                }
+                {
+                  success && (
+                    <View style={styles.successContainer}>
+                      {
+                        error.map((error, i) => {
+                          return(
+                            <Text style={styles.successText} key={i}>
                               - {error}
                             </Text>
                           )
@@ -396,10 +459,25 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: COLORS.danger,
+    color: COLORS.dangerText,
     textAlign : 'center',
     fontSize: FONTSIZE.s,
   },
+
+  successContainer : {
+    marginBottom: SPACING.s,
+    paddingVertical: SPACING.s,
+    marginHorizontal : SPACING.s,
+    marginVertical : SPACING.s,
+    backgroundColor: COLORS.success,
+    borderRadius: 8,
+  },
+
+  successText : {
+    color: COLORS.successText,
+    textAlign : 'center',
+    fontSize: FONTSIZE.s,
+  }
 
 });
 

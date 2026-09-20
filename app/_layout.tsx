@@ -1,8 +1,9 @@
 import { Stack } from "expo-router";
+import authStore from "@/store/authStore";
 
 const RootLayout = () => {
 
-    const isAuthenticated = false
+    const isAuthenticated = authStore((state) => state.isAuthenticated)
 
     return (
         <Stack screenOptions={{ headerShown: false }}>
