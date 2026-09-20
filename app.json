@@ -23,7 +23,13 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
-      "expo-router"
-    ]
+      "expo-router",
+        [
+          "expo-location",
+          {
+            "locationWhenInUsePermission": "BooFi usa tu ubicación para mostrarte en el mapa y encontrar bibliotecas cerca."
+          }
+      ]
+    ],
   }
 }
