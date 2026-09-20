@@ -1,9 +1,15 @@
 import { Text, View, StyleSheet } from 'react-native';
 
+//components
+import BookSearch from "@/components/BookSearch"
+
+//constans
+import { COLORS } from "@/constants/theme"
+
 export default function ExploreScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Pantalla de exploración</Text>
+      <BookSearch />
     </View>
   );
 }
@@ -11,9 +17,7 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#25292e',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: COLORS.background,
   },
   text: {
     color: '#fff',

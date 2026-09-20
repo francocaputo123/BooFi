@@ -1,6 +1,6 @@
-import { Book } from "../types/types"
+import { Book } from "../types/book.types"
 
-// datos de prueba 
+// datos de prueba
 const BOOKS: Book[] = [
     {
         id: "1",

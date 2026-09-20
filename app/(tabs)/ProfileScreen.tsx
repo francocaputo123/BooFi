@@ -1,7 +1,7 @@
 import BookSearch from "../../components/BookSearch"
 
 const Index = () => {
-    return <BookSearch />
+    return null
 }
 
 export default Index

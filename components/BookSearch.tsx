@@ -2,6 +2,9 @@ import { useState } from "react"
 import { FlatList, StyleSheet, Text, TextInput, View,} from "react-native"
 import BOOKS from "../data/books"
 
+//constants
+import { COLORS } from "@/constants/theme"
+
 const BookSearch = () => {
     const [searchText, setSearchText] = useState("")
 
@@ -49,12 +52,12 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: "#25292e",
+        backgroundColor: COLORS.background,
     },
 
     title: {
         marginBottom: 20,
-        color: "#ffffff",
+        color: COLORS.text,
         fontSize: 28,
         fontWeight: "bold",
     },
@@ -63,7 +66,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         padding: 12,
         borderRadius: 8,
-        backgroundColor: "#ffffff",
+        borderColor : "#000000",
+        borderWidth : 1,
         fontSize: 16,
     },
 

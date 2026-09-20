@@ -21,7 +21,7 @@ const RootLayout = () => {
                 }}
             />
             <Tabs.Screen
-                name="ExploreScreen"
+                name="Explore"
                 options={{
                     title : 'Explorar',
                     tabBarIcon: ({ color, focused}) => (
