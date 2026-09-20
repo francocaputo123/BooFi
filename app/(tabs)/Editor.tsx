@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { useEpubUpload } from "../../hooks/useEpubUpload";
+import { useEpubUpload } from "../../utils/useEpubUpload";
 import { COLORS, SPACING, FONTSIZE } from "../../constants/theme";
 
 const EditorScreen = () => {

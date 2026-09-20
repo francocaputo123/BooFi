@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView from 'react-native-maps';
-import { useUserLocation } from '../../hooks/useUserLocation';
+import { useUserLocation } from '../../utils/useUserLocation';
 import { COLORS } from '../../constants/theme';
 
 // Chips de filtro (por ahora solo se marcan; el filtrado real va en el 9.2)
