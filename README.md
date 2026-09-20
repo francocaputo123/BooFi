@@ -187,7 +187,7 @@ function sum(a,b) {
 **Instalación**
 1. git clone
 2. npm install | npm i
-3. npm expo start
+3. npx expo start
 
 ## Colaboradores
 
