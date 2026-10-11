@@ -12,6 +12,9 @@ import { COLORS } from '@/constants/theme';
 // data
 import profileCameraData from '@/data/profileCameraData.json';
 
+//controller
+import { uploadImage } from '@/services/profileService';
+
 const ProfileCamera = () => {
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
@@ -27,10 +30,18 @@ const ProfileCamera = () => {
     handleTakePicture: async () => {
       if (cameraRef.current) {
         try {
+          /** 
+            Se convierte en un blob para pasarlo a firebase
+          */
+
           const photo = await cameraRef.current.takePictureAsync();
           const res = await fetch(photo?.uri)
           const blob = await res.blob()
-          console.log('Foto tomada:', blob);
+          
+          const image = await uploadImage(blob) 
+
+          console.log(image)
+
         } catch (error) {
           console.error('Error al tomar la foto:', error);
         }
@@ -60,14 +71,21 @@ const ProfileCamera = () => {
     },
 
     handlePickImage : async () => {
-      let result = await ImagePicker.launchImageLibraryAsync({
+      const photo = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
         quality: 1,
       })
 
-      if (!result.canceled) {
-        console.log(result);
+      if (!photo.canceled) {
+        try {
+          const res = await fetch(photo?.assets[0].uri)
+          const blob = await res.blob() 
+
+
+        } catch (error) {
+          
+        }
       } else {
         Alert.alert(
           'Perfil',

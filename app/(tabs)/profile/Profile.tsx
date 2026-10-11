@@ -22,6 +22,7 @@ const Profile = () => {
     const router = useRouter()
 
     const loggout = authStore((state) => state.loggout)
+    const profilePhoto = authStore((state) => state.photoUrl)
 
     const actions = {
         loggout : () => {
@@ -35,6 +36,7 @@ const Profile = () => {
         },
 
         handleMyBooks : () => {
+            console.log(profilePhoto)
             router.push('/profile/ProfileBooks')
         }
     }
@@ -46,9 +48,9 @@ const Profile = () => {
                     onPress={() => router.push("/profile/ProfileCamera")}
                 >
                     <Image 
-                    style={styles.perfilImage}
+                    style={styles.profileImage}
                     alt="Foto de perfil"
-                    source={require('@/assets/images/default_profile.png')}
+                    source={profilePhoto ?  { uri : profilePhoto } : require('@/assets/images/default_profile.png')}
                     />
                 </Pressable>
                 <View
@@ -109,14 +111,14 @@ const styles = StyleSheet.create({
         padding : SPACING.s
       },
 
-      perfilImage : {
-        maxWidth : 150,
-        maxHeight : 150,
-        resizeMode : "contain",
-        borderWidth : 2,
-        borderColor : COLORS.primary,
-        borderRadius : 100
-      },
+      profileImage : {
+        width: 150,
+        height: 150,
+        borderRadius: 75, 
+        borderWidth: 2,
+        borderColor: COLORS.primary,
+        resizeMode: 'cover', 
+    },
 
       buttonContainer : {
         width : '80%',
