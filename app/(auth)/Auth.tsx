@@ -36,6 +36,7 @@ const Auth = () => {
   })
 
   const setAuth = authStore((data) => data.setAuthData)
+  const email = authStore((data) => data.email)
   
   const [formView, setFormView] = useState<viewStatus>("login")
 

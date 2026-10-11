@@ -25,6 +25,12 @@
           {
             "locationWhenInUsePermission": "BooFi usa tu ubicación para mostrarte en el mapa y encontrar bibliotecas cerca."
           }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission" : "¿Permitís el acceso de tú cámara a BooFi?"
+        }
       ]
     ]
   }

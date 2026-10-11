@@ -8,12 +8,16 @@ const authStore = create<authState>()(
         set => ({
             public_id : "",
             email : "",
+            username : "",
+            photoUrl : "",
             isAuthenticated : false,
 
-            setAuthData : ({public_id,email} : authTypes) => {
+            setAuthData : ({public_id,email,username,photoUrl} : authTypes) => {
                 set({
                     public_id : public_id,
                     email : email,
+                    username : username,
+                    photoUrl : photoUrl,
                     isAuthenticated : true
                 })
             },
@@ -22,6 +26,8 @@ const authStore = create<authState>()(
                 set({
                     public_id : "",
                     email : "",
+                    username : "",
+                    photoUrl : "",
                     isAuthenticated : false
                 })
             }

@@ -4,7 +4,7 @@ export const handleFirebaseError = (error : any) => {
             return "El email ya se encuentra en uso"
         case 'auth/invalid-credential' :
             return "Credenciales incorrectas"
-        defult :
+        default :
             return "Error en la base de datos"
     }
 }

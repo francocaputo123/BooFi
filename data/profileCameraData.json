@@ -1,0 +1,42 @@
+{
+    "active" : [
+        {
+            "label" : null,
+            "type" : "button",
+            "styles" : "pictureButton",
+            "icon" : null,
+            "action" : "handleTakePicture"
+        },
+        {
+            "label" : null,
+            "type" : "button",
+            "styles" : "flipButton",
+            "icon" : "camera-reverse-outline",
+            "action" : "handleCameraFacing"
+        }
+    ],
+    "notActive" : [
+        {
+            "label" : null,
+            "type" : "button",
+            "styles" : "btn",
+            "icon" : null,
+            "action" : "handleOpenCamera",
+            "text" : {
+                "label" : "Usar cámara",
+                "styles" : "btnText"
+            }
+        },
+        {
+            "label" : null,
+            "type" : "button",
+            "styles" : "btn",
+            "icon" : null,
+            "action" : "handlePickImage",
+            "text" : {
+                "label" : "Buscar imagen",
+                "styles" : "btnText"
+            }
+        }
+    ]
+}
