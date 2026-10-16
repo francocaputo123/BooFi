@@ -1,0 +1,34 @@
+{
+    "login" : [
+        {
+            "label" : "Bienvenido denuevo",
+            "style" : "title"
+        },
+        {
+            "label" : "Iniciá sesión para continuar leyendo",
+            "style" : "subtitle"
+        }
+    ],
+    "signup" : [
+        {
+            "label" : "Crea tu cuenta",
+            "style" : "title"
+        },
+        {
+            "label" : "Unite a la comunidad de lectores",
+            "style" : "subtitle"
+        }
+    ],
+    "buttons" : [
+        {
+            "label" : "Iniciar sesión",
+            "type" : "login",
+            "action" : "handleLogin"
+        },
+        {
+            "label" : "Crear cuenta",
+            "type" : "signup",
+            "action" : "handleRegister"
+        }
+    ]
+}
