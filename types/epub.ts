@@ -7,8 +7,7 @@ export interface EpubInfo {
     portada: string;
 }
 
+/* Los capitulos ya no viajan por la URL (pesan demasiado): se busca el libro por id en bookStore */
 export interface EpubDetailScreenParams {
-    title?: string;
-    author?: string;
-    chapters?: string;
+    id?: string;
 }

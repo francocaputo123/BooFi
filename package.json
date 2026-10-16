@@ -16,6 +16,7 @@
     "expo-constants": "~18.0.14",
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.24",
+    "expo-image-manipulator": "~14.0.8",
     "expo-linking": "~8.0.12",
     "expo-location": "~19.0.8",
     "expo-router": "~6.0.24",
