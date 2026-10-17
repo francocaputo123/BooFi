@@ -1,49 +1,111 @@
-import { useState } from "react"
-import { FlatList, StyleSheet, Text, TextInput, View,} from "react-native"
-import BOOKS from "../data/books"
+import { FlatList, StyleSheet, Text, useWindowDimensions, View } from "react-native"
+import BookCard from "@/components/BookCard"
+import SearchBar from "@/components/ui/SearchBar"
+import GenreChips from "@/components/ui/GenreChips"
+import FeedbackMessage from "@/components/ui/FeedbackMessage"
+import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
+import { ALL_GENRES_LABEL, BOOK_GENRES, CATALOG_LABELS, GRID_COLUMNS, GRID_GAP } from "@/data/catalogData"
+import { useBookSearch } from "@/hooks/useBookSearch"
 
-//constants
-import { COLORS } from "@/constants/theme"
-
+/**
+ * Pantalla de Explorar: busqueda por titulo o autor, chips de genero y grilla de historias.
+ * Los datos y la logica viven en useBookSearch; aca solo se dibuja segun el estado.
+ */
 const BookSearch = () => {
-    const [searchText, setSearchText] = useState("")
+    const { width: screenWidth } = useWindowDimensions()
+    const {
+        books,
+        filteredBooks,
+        isLoading,
+        isRefreshing,
+        errorMessage,
+        reloadBooks,
+        refreshBooks,
+        searchText,
+        setSearchText,
+        selectedGenre,
+        setSelectedGenre,
+        clearFilters,
+        hasActiveFilters,
+    } = useBookSearch()
 
-    // para que la busqueda no dependa de mayusculas ni espacios
-    const search = searchText.toLowerCase().trim()
+    const cardWidth = (screenWidth - SPACING.l * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS
 
-    const filteredBooks = BOOKS.filter((book) => {
+    const renderResults = () => {
+        if (isLoading) {
+            return <FeedbackMessage isLoading message={CATALOG_LABELS.LOADING} />
+        }
+
+        // Si una actualizacion falla pero ya hay libros en pantalla, se siguen mostrando en vez de tapar todo con el error
+        if (errorMessage && books.length === 0) {
+            return (
+                <FeedbackMessage
+                    message={errorMessage}
+                    actionLabel={CATALOG_LABELS.RETRY}
+                    onAction={reloadBooks}
+                />
+            )
+        }
+
+        if (filteredBooks.length === 0) {
+            // Con el catalogo vacio "Limpiar filtros" no ayudaria: ahi se ofrece actualizar, por si se acaba de publicar algo
+            if (books.length === 0) {
+                return (
+                    <FeedbackMessage
+                        message={CATALOG_LABELS.EMPTY_CATALOG}
+                        actionLabel={CATALOG_LABELS.REFRESH}
+                        onAction={reloadBooks}
+                    />
+                )
+            }
+
+            return (
+                <FeedbackMessage
+                    message={CATALOG_LABELS.NO_RESULTS}
+                    actionLabel={hasActiveFilters ? CATALOG_LABELS.CLEAR_FILTERS : undefined}
+                    onAction={clearFilters}
+                />
+            )
+        }
+
         return (
-            book.title.toLowerCase().includes(search) ||
-            book.author.toLowerCase().includes(search)
-        )
-    })
-
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Buscar libros</Text>
-
-            <TextInput
-                style={styles.searchInput}
-                placeholder="Buscar por título o autor"
-                placeholderTextColor="#888"
-                value={searchText}
-                onChangeText={setSearchText}
-            />
-
-            {filteredBooks.length === 0 ? (
-                <Text style={styles.emptyMessage}> No se encontraron resultados. </Text>
-            ) : (
+            <>
+                <Text style={styles.sectionLabel}>{CATALOG_LABELS.SECTION_ALL}</Text>
                 <FlatList
                     data={filteredBooks}
                     keyExtractor={(book) => book.id}
-                    renderItem={({ item }) => (
-                        <View style={styles.bookCard}>
-                            <Text style={styles.bookTitle}> {item.title} </Text>
-                            <Text style={styles.bookAuthor}> {item.author} </Text>
-                        </View>
-                    )}
+                    numColumns={GRID_COLUMNS}
+                    columnWrapperStyle={styles.gridRow}
+                    renderItem={({ item }) => <BookCard book={item} width={cardWidth} />}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    refreshing={isRefreshing}
+                    onRefresh={refreshBooks}
                 />
-            )}
+            </>
+        )
+    }
+
+    return (
+        <View style={styles.container}>
+            <Text style={styles.title}>{CATALOG_LABELS.SCREEN_TITLE}</Text>
+
+            <SearchBar
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder={CATALOG_LABELS.SEARCH_PLACEHOLDER}
+            />
+
+            <View style={styles.chips}>
+                <GenreChips
+                    genres={BOOK_GENRES}
+                    selected={selectedGenre}
+                    onSelect={setSelectedGenre}
+                    allLabel={ALL_GENRES_LABEL}
+                />
+            </View>
+
+            <View style={styles.results}>{renderResults()}</View>
         </View>
     )
 }
@@ -51,49 +113,31 @@ const BookSearch = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
+        padding: SPACING.l,
         backgroundColor: COLORS.background,
     },
-
     title: {
-        marginBottom: 20,
+        marginBottom: SPACING.m,
         color: COLORS.text,
-        fontSize: 28,
+        fontSize: FONTSIZE.xxl,
         fontWeight: "bold",
     },
-
-    searchInput: {
-        marginBottom: 20,
-        padding: 12,
-        borderRadius: 8,
-        borderColor : "#000000",
-        borderWidth : 1,
-        fontSize: 16,
+    chips: {
+        marginTop: SPACING.m,
     },
-
-    bookCard: {
-        marginBottom: 12,
-        padding: 16,
-        borderRadius: 8,
-        backgroundColor: "#3a3f45",
+    results: {
+        flex: 1,
+        marginTop: SPACING.m,
     },
-
-    bookTitle: {
-        marginBottom: 5,
-        color: "#ffffff",
-        fontSize: 18,
-        fontWeight: "bold",
+    sectionLabel: {
+        marginBottom: SPACING.m,
+        color: COLORS.textSecondary,
+        fontSize: FONTSIZE.xs,
+        letterSpacing: 1.5,
+        textTransform: "uppercase",
     },
-
-    bookAuthor: {
-        color: "#cccccc",
-        fontSize: 14,
-    },
-
-    emptyMessage: {
-        color: "#cccccc",
-        fontSize: 16,
-        textAlign: "center",
+    gridRow: {
+        gap: GRID_GAP,
     },
 })
 
