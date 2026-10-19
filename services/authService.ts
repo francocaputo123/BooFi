@@ -1,8 +1,14 @@
-import { collection, addDoc, getDoc, doc, setDoc} from "firebase/firestore";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
-import { auth, db } from "@/config/firebaseConfig";
+import { writeBatch, getDoc, doc, setDoc, serverTimestamp} from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut} from "firebase/auth";
+
+//types
 import { registerForm, loginForm} from "@/types/auth.types";
+
+//utils
 import { handleFirebaseError } from "@/utils/handleFirebaseError";
+
+//conf
+import { auth, db } from "@/config/firebaseConfig";
 
 export const registerUser = async (formData : registerForm) => {
     try {
@@ -12,15 +18,35 @@ export const registerUser = async (formData : registerForm) => {
 
         const user = userCredential.user
 
-        const docRef = doc(db, 'users', user.uid)
+        /**
+            Se inicia una transaccion con batch.
+            Si por algun motivo no se crea el usuario, el perfil tampoco.
+            Separamos perfil de usuario para mantener los datos de la cuenta por separado.  
+        */
+        const batch = writeBatch(db);
+
+        const userRef = doc(db, 'users', user.uid)
+        const profileRef = doc(db, 'profiles', user.uid)
 
         const userData = {
-            username : username,
             email : email,
-            createdAt : new Date().toISOString()
+            role : "user",
+            createdAt : serverTimestamp()
         }
 
-        await setDoc(docRef, userData)
+        const profileData = {
+            username : username,
+            photoUrl : "",
+            photoPath : "",
+            bio : "",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        }
+
+        batch.set(userRef, userData);
+        batch.set(profileRef, profileData);
+
+        await batch.commit();
 
         return true
     } catch (error) {
@@ -36,22 +62,33 @@ export const loginUser = async (formData: loginForm) => {
 
         const user = userCredential.user
 
-        const docRef = doc(db, 'users', user.uid)
-        const userRef = await getDoc(docRef)
+        const profileRef = doc(db, 'profiles', user.uid)
+        const profile = await getDoc(profileRef)
 
-        if(!userRef.exists()) {
+        if(!profile.exists()) {
             throw new Error("No se encontraron datos con ese perfil")
         }
 
         const userData = {
             public_id : user.uid,
-            email : userRef.data().email,
-            username : userRef.data().username
+            email : user.email,
+            username : profile.data().username,
+            bio : profile.data().bio || "",
+            photoUrl : profile.data().photoUrl || "",
+            photoPath : profile.data().photoPath || ""
         }
 
         return userData
 
     } catch (error) {
         throw new Error(handleFirebaseError(error))
+    }
+}
+
+export const destroyAuth = async () => {
+    try {
+        await signOut(auth)
+    } catch (error : any) {
+        throw new Error(error.message)
     }
 }

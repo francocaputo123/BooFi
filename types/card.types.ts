@@ -1,9 +1,9 @@
 import { ReactNode } from "react";
-import { ViewStyle } from "react-native";
+import { StyleProp, ViewStyle } from "react-native";
 
 export interface componentProps {
     children : ReactNode,
-    style? : ViewStyle | null
+    style? : StyleProp<ViewStyle> | null
 }
 
 export interface textProps {

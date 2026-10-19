@@ -1,0 +1,24 @@
+{
+    "buttons" : [
+        {
+            "label" : "Mis datos",
+            "action" : "handleMyData",
+            "type" : "button"
+        },
+        {
+            "label" : "Mis libros",
+            "action" : "handleMyBooks",
+            "type" : "button"
+        },
+        {
+            "label" : "Mis publicaciones",
+            "action" : "handleMyPublications",
+            "type" : "button"
+        },
+        {
+            "label" : "Cerrar sesión",
+            "action" : "loggout",
+            "type" : null
+        }
+    ]
+}
