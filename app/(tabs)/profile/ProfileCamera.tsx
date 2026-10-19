@@ -1,9 +1,8 @@
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
-import { Pressable, StyleSheet, Text, TouchableOpacity, View, Alert, Linking, ViewStyle, TextStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View, Alert, Linking, ViewStyle, TextStyle, Image} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker'
 
 // constants
@@ -15,12 +14,27 @@ import profileCameraData from '@/data/profileCameraData.json';
 //controller
 import { uploadImage } from '@/services/profileService';
 
+//store
+import authStore from '@/store/authStore';
+
+//icons
+import Ionicons from '@expo/vector-icons/Ionicons';
+
+//utils
+import { handleImageVerification } from '@/utils/handleVerification';
+
 const ProfileCamera = () => {
-  const cameraRef = useRef<CameraView>(null);
+  
+  const setPhoto = authStore((state) => state.setPhoto) 
+  const profilePhoto = authStore((state) => state.photoUrl)
+  
   const router = useRouter();
+
+  const cameraRef = useRef<CameraView>(null);
   const [facing, setFacing] = useState<CameraType>('back');
   const [isOpen, setIsOpen] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const [expand, setExpand] = useState(false)
 
   const actions = {
     handleCameraFacing: () => {
@@ -34,16 +48,40 @@ const ProfileCamera = () => {
             Se convierte en un blob para pasarlo a firebase
           */
 
-          const photo = await cameraRef.current.takePictureAsync();
+          const photo = await cameraRef.current.takePictureAsync()
           const res = await fetch(photo?.uri)
           const blob = await res.blob()
+
+          const verified = handleImageVerification(blob)
+
+          if(verified?.status == "error") {
+            router.back()
+            return(
+              Alert.alert(
+                'Error en la camara',
+                verified?.message,
+                [
+                  { text: 'Cerrar', style: 'cancel' },
+                ]
+              )
+            )
+          }
           
           const image = await uploadImage(blob) 
 
-          console.log(image)
+          /**
+           * Importante actualizar la store.
+           */
+
+          if(image) {
+            setPhoto({
+              photoUrl : image
+            })
+            router.back()
+          }
 
         } catch (error) {
-          console.error('Error al tomar la foto:', error);
+          throw error
         }
       }
     },
@@ -82,6 +120,29 @@ const ProfileCamera = () => {
           const res = await fetch(photo?.assets[0].uri)
           const blob = await res.blob() 
 
+          const verified = handleImageVerification(blob)
+
+          if(verified?.status == "error") {
+            router.back()
+            return(
+              Alert.alert(
+                'Error en la camara',
+                verified?.message,
+                [
+                  { text: 'Cerrar', style: 'cancel' },
+                ]
+              )
+            )
+          }
+
+          const image = await uploadImage(blob)
+
+          if(image) {
+            setPhoto({
+              photoUrl : image
+            })
+            router.back()
+          }
 
         } catch (error) {
           
@@ -120,6 +181,16 @@ const ProfileCamera = () => {
         </View>
       ) : (
         <SafeAreaView style={styles.safeAreaContainer}>
+          <Pressable
+          style={styles.imageBtn}
+          onPress={() => setExpand(true)}
+          >
+            <Image 
+            style={styles.profileImage}
+            alt="Foto de perfil"
+            source={profilePhoto ? { uri : profilePhoto } : require('@/assets/images/default_profile.png')}
+            />
+          </Pressable>
           <View>
             <Text style={styles.message}>Elije tu imagen de perfil</Text>
             {
@@ -140,6 +211,24 @@ const ProfileCamera = () => {
           </View>
         </SafeAreaView>
       )}
+      {
+        expand && (
+          <View
+          style={styles.overlayContainer}
+          >
+            <Image
+            style={styles.overlayImage}
+            alt="Foto de perfil"
+            source={profilePhoto ? { uri : profilePhoto } : require('@/assets/images/default_profile.png')}
+            />
+            <TouchableOpacity
+                  onPress={() => setExpand(false)}
+                >
+                  <Ionicons name="close" size={60} color="red" />
+                </TouchableOpacity>
+          </View>
+        )
+      }
     </View>
   );
 };
@@ -147,33 +236,38 @@ const ProfileCamera = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
   },
+
   safeAreaContainer: {
     width: '80%',
   },
+
   btn: {
     backgroundColor: COLORS.primary,
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
   },
+
   btnText: {
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
   },
+  
   cameraContainer: {
     flex: 1,
     width: '100%',
     height: '100%',
     position: 'relative',
   },
+
   message: {
     textAlign: 'center',
     paddingBottom: 10,
   },
+
   buttonContainer: {
     position: 'absolute',
     bottom: 64,
@@ -186,6 +280,7 @@ const styles = StyleSheet.create({
     gap: 16,
     zIndex: 10,
   },
+
   pictureButton: {
     width: 72,
     height: 72,
@@ -196,6 +291,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   flipButton: {
     width: 64,
     height: 64,
@@ -204,6 +300,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  profileImage : {
+    width: 250,
+    height: 250,
+    borderRadius: 150, 
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    resizeMode: 'cover',
+  },
+
+  imageBtn: {
+    alignItems : 'center',
+    marginVertical : 10
+  },
+
+  overlayContainer : {
+    position : 'absolute',
+    backgroundColor : 'rgb(0, 0, 0, 0.7)',
+    width : '100%',
+    height : '100%',
+    zIndex : 100,
+    alignItems : 'center',
+    paddingVertical : 30
+  },
+
+  overlayImage : {
+    width: 350,
+    height: 350,
+    borderRadius: 200, 
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    resizeMode: 'cover',
+  }
 });
 
 export default ProfileCamera;

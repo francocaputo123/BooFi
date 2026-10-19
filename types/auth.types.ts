@@ -16,16 +16,19 @@ export interface authState {
     public_id : string,
     email : string,
     username : string,
-    photoUrl? : string,
+    bio : string,
+    photoUrl? : string | undefined,
     isAuthenticated : boolean,
-    setAuthData: (data: authTypes) => void,
+    setAuthData : (data: authTypes) => void,
+    setPhoto : (data: Partial<authTypes>) => void,
     loggout : () => void
 }
 
 export interface authTypes {
     public_id : string,
-    email : string,
+    email : string ,
     username : string,
-    photoUrl? : "",
+    bio : string,
+    photoUrl? : string | undefined,
     isAuthenticated : boolean
 }

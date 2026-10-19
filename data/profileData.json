@@ -11,6 +11,11 @@
             "type" : "button"
         },
         {
+            "label" : "Mis publicaciones",
+            "action" : "handleMyPublications",
+            "type" : "button"
+        },
+        {
             "label" : "Cerrar sesión",
             "action" : "loggout",
             "type" : null

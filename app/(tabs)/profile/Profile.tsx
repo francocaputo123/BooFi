@@ -36,7 +36,6 @@ const Profile = () => {
         },
 
         handleMyBooks : () => {
-            console.log(profilePhoto)
             router.push('/profile/ProfileBooks')
         }
     }
@@ -84,7 +83,7 @@ const Profile = () => {
                                             size={20} 
                                             color={"red"} 
                                             style={styles.loggoutIcon}
-                                        />
+                                    />
                                     <Text
                                     style={styles.textLink}
                                     >

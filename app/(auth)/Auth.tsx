@@ -86,6 +86,8 @@ const Auth = () => {
           setAuth({
             public_id : data.public_id,
             email : data.email,
+            username : data.username,
+            bio : data.bio,
             photoUrl : data.photoUrl,
             isAuthenticated : true
           })

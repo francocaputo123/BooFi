@@ -37,6 +37,7 @@ export const registerUser = async (formData : registerForm) => {
         const profileData = {
             username : username,
             photoUrl : "",
+            photoPath : "",
             bio : "",
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
@@ -72,7 +73,9 @@ export const loginUser = async (formData: loginForm) => {
             public_id : user.uid,
             email : user.email,
             username : profile.data().username,
-            photoUrl : profile.data().photoUrl || ""
+            bio : profile.data().bio || "",
+            photoUrl : profile.data().photoUrl || "",
+            photoPath : profile.data().photoPath || ""
         }
 
         return userData
