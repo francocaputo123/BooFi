@@ -1,5 +1,6 @@
 import { doc, getDoc, setDoc } from "firebase/firestore"
-import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
+import * as FileSystem from "expo-file-system/legacy"
 import { db, storage } from "@/config/firebaseConfig"
 import {
     PublishBookParams,
@@ -22,10 +23,37 @@ import { buildChapterImagePath, buildChapterPath, buildCoverPath } from "@/utils
 import { handleFirebaseError } from "@/utils/handleFirebaseError"
 import { prepareImageForUpload } from "@/utils/prepareImage"
 
+/*
+ * Sube una imagen JPEG que viene en base64.
+ * No se usa uploadString porque en React Native falla al crear el Blob desde un ArrayBuffer.
+ * 1) Guarda la imagen en un archivo temporal del celu
+ * 2) Hace fetch de ese archivo para obtener un Blob (React Native si soporta esto)
+ * 3) Sube el Blob con uploadBytes
+ * 4) Borra el archivo temporal, salga bien o mal
+ */
+const uploadBase64Jpeg = async (storageRef: ReturnType<typeof ref>, base64: string) => {
+    const tempUri = `${FileSystem.cacheDirectory}upload-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.jpg`
+
+    try {
+        await FileSystem.writeAsStringAsync(tempUri, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+        })
+        const response = await fetch(tempUri)
+        const blob = await response.blob()
+        await uploadBytes(storageRef, blob, { contentType: JPEG_CONTENT_TYPE })
+    } finally {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true })
+    }
+}
+
 /* Sube un capitulo como archivo JSON (sin espacios de mas, para que pese lo menos posible) */
 const uploadChapter = async (bookId: string, chapter: PublishedChapter) => {
     const chapterRef = ref(storage, buildChapterPath(bookId, chapter.index))
-    await uploadString(chapterRef, JSON.stringify(chapter), "raw", {
+    // Un Blob armado desde un string si esta soportado en React Native
+    const jsonBlob = new Blob([JSON.stringify(chapter)], { type: CHAPTER_CONTENT_TYPE })
+    await uploadBytes(chapterRef, jsonBlob, {
         contentType: CHAPTER_CONTENT_TYPE,
     })
 }
@@ -52,9 +80,7 @@ const uploadChapterImage = async (
     const imagePath = buildChapterImagePath(bookId, chapterIndex, imageIndex)
     uploadedPaths.push(imagePath)
     const imageRef = ref(storage, imagePath)
-    await uploadString(imageRef, base64, "base64", {
-        contentType: JPEG_CONTENT_TYPE,
-    })
+    await uploadBase64Jpeg(imageRef, base64)
     return await getDownloadURL(imageRef)
 }
 
@@ -172,9 +198,7 @@ export const publishBook = async (params: PublishBookParams): Promise<PublishBoo
             const coverPath = buildCoverPath(bookId)
             uploadedPaths.push(coverPath)
             const coverRef = ref(storage, coverPath)
-            await uploadString(coverRef, coverJpegBase64, "base64", {
-                contentType: JPEG_CONTENT_TYPE,
-            })
+            await uploadBase64Jpeg(coverRef, coverJpegBase64)
             coverUrl = await getDownloadURL(coverRef)
         }
 
