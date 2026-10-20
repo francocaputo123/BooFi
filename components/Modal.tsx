@@ -1,18 +1,24 @@
 import { modalProps } from "@/types/modal.types"
-import { View, StyleSheet, Pressable, Text} from 'react-native';
+import { View, StyleSheet, Pressable, Text, Animated } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
 
 //components
 import Card from "@/components/Card"
 import { COLORS } from "@/constants/theme"
 
 /**
- * Modal con overlay incorporado para superponerse encima de los elementos. 
- * 
- * @param outsideStyle - Estilos externos del modal
- * @param innerStyle - Estilos para internos del modal
- * @param setOpen - Funcion para cerrar el modal
- * @param isOpen - Estado para verificar si abierto es o no falso
- * @param children
+- Modal con overlay incorporado para superponerse encima de los elementos. 
+- 
+- 
+- @param outsideStyle Estilos externos del modal
+- 
+- @param innerStyle Estilos para internos del modal
+- 
+- @param setOpen Funcion para cerrar el modal
+- 
+- @param isOpen Estado para verificar si abierto es o no falso
+- 
+@param children
 */
 
 
@@ -26,14 +32,45 @@ const Modal = (props : modalProps) => {
         children = null
     } = props
 
-    if(!isOpen) return null
+    const [renderModal, setRenderModal] = useState(isOpen)
+    const animValue = useRef(new Animated.Value(0)).current
+
+    useEffect(() => {
+        if(isOpen) {
+            setRenderModal(true)
+            Animated.timing(animValue, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start()
+        } else {
+            Animated.timing(animValue, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                setRenderModal(false)
+            })
+        }
+    }, [isOpen])
+
+    if(!renderModal) return null
+
+    const scale = animValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.85, 1],
+    })
 
     return(
-        <View
-        style={styles.modalOverlay}
+        <Animated.View
+        style={[styles.modalOverlay, { opacity: animValue }]}
         >
-            <View
-            style={[styles.modalContainer, outsideStyle]}
+            <Animated.View
+            style={[
+                styles.modalContainer, 
+                outsideStyle,
+                { transform: [{ scale }] }
+            ]}
             >
                 <Card
                 style={[styles.card, innerStyle]}
@@ -48,8 +85,8 @@ const Modal = (props : modalProps) => {
                         X 
                     </Text>
                 </Pressable>
-            </View>
-        </View>
+            </Animated.View>
+        </Animated.View>
     )
 }
 
@@ -58,7 +95,7 @@ const styles = StyleSheet.create({
         position : 'absolute',
         width : '100%',
         height : '100%',
-        backgroundColor : 'rgb(0, 0, 0, 0.7)'
+        backgroundColor : 'rgba(0, 0, 0, 0.7)'
     },
 
     modalContainer : {
@@ -79,7 +116,7 @@ const styles = StyleSheet.create({
         backgroundColor : COLORS.danger,
         paddingVertical : 10,
         paddingHorizontal : 15,
-        borderRadius : '100%'
+        borderRadius : 100
     },
 
 })

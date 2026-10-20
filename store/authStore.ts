@@ -13,13 +13,9 @@ const authStore = create<authState>()(
             photoUrl : "",
             isAuthenticated : false,
 
-            setAuthData : ({ public_id,email,username,bio,photoUrl } : authTypes) => {
+            setAuthData : ( data: Partial<authTypes>) => {
                 set({
-                    public_id : public_id,
-                    email : email,
-                    username : username,
-                    bio : bio,
-                    photoUrl : photoUrl,
+                    ...data,
                     isAuthenticated : true
                 })
             },

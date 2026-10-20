@@ -18,29 +18,54 @@ import { useShallow } from 'zustand/react/shallow'
 //components
 import Modal from '@/components/Modal';
 
+//types 
+import { ProfileKey } from '@/types/profile.types';
+
+//services
+import { updateUsername } from '@/services/profileService';
+
 const ProfileData = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [change, setChange] = useState("")
-    const [text, setText] = useState("")
+    const [fieldText, setFieldText] = useState("")
+    const [currentField, setCurrentField] = useState<ProfileKey | null>(null)
+    const [isFocused, setIsFocused] = useState(false)
+    
+    const setAuthData = authStore((state) => state.setAuthData)
 
     const userData = authStore(
-
         useShallow((state) => ({
             email : state.email,
             username : state.username,
-            bio : state.bio
+            bio : state.bio,
         }))
     )
 
-    const actions = {
-        
-        updateUsername : () => {
-            setIsModalOpen(true)
-            setText("Actualizar nombre de usuario: ")
-        }
+    const fieldTitles : Record<ProfileKey, string> = {
+        username : "Actualizar nombre de usuario",
+        bio : "Actualizar biografia"
+    }
 
-        
+    const actions = {
+        updateUsername : () => handleOpenModal('username'),
+        updateBio : () => handleOpenModal('bio')
+    }
+
+    const handleOpenModal = (fieldKey : ProfileKey) => {
+        setCurrentField('username')
+        setFieldText(fieldTitles[fieldKey] || "Actualizar")
+        setChange(userData[fieldKey] || "")
+        setIsModalOpen(true)
+    }
+
+    const handleSave = () => {
+        if(!currentField) return 
+
+        switch(currentField) {
+            case 'username' :
+                return
+        }
     }
 
     return (
@@ -65,7 +90,7 @@ const ProfileData = () => {
                                             <Text style={styles.rowLabel}>
                                                 {
                                                     field.type == "text" ? (
-                                                        userData[field.text as keyof typeof userData]
+                                                        userData[field.key as keyof typeof userData]
                                                     ) : (
                                                         field.text
                                                     )
@@ -96,27 +121,33 @@ const ProfileData = () => {
                 </View>
             </ScrollView>
             <Modal
-                outsideStyle={styles.outsideModal}
                 innerStyle={styles.innerModal}
                 isOpen={isModalOpen}
                 setOpen={setIsModalOpen}
             >
-                <Text style={styles.titleIpt}> {text} </Text>
+                <Text style={styles.titleIpt}>{fieldText}</Text>
+                
                 <TextInput
-                onChangeText={setChange}
-                style={styles.ipt}
-                placeholder=''
+                    value={change}
+                    onChangeText={setChange}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    style={[
+                        styles.ipt,
+                        isFocused && styles.iptFocused
+                    ]}
+                    placeholder="Escribe el nuevo valor..."
+                    placeholderTextColor="#999"
                 />
+
                 <Pressable
-                style={styles.modalBtn}
+                    style={styles.modalBtn}
+                    onPress={handleSave}
                 >
-                    <Text
-                    style={styles.modalBtnText}
-                    >
-                        Actualizar
+                    <Text style={styles.modalBtnText}>
+                        Guardar cambios
                     </Text>
                 </Pressable>
-
             </Modal>
         </SafeAreaView>
     );
@@ -174,36 +205,55 @@ const styles = StyleSheet.create({
         color: COLORS.text || '#1a1a1a',
     },
     
-    innerModal : {
-        borderRadius : 10
+    innerModal: {
+        borderRadius: 16,
+        padding: 20,
     },
 
-    outsideModal : {
-        borderWidth : 1,
-        borderColor : 'black'
+    titleIpt: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: COLORS.text || '#1a1a1a',
+        marginBottom: 16,
+        textAlign: 'center',
     },
 
-    titleIpt : {
-        fontWeight : 'bold'
+    ipt: {
+        backgroundColor: COLORS.background || '#f5f5f5',
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: '#E0E0E0',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: COLORS.text || '#1a1a1a',
+        marginBottom: 20,
     },
 
-    ipt : {
-        backgroundColor : COLORS.background,
-        borderRadius : 10,
-        borderWidth : 0.5,
-        marginVertical : 10
+    iptFocused: {
+        borderColor: COLORS.primary || '#007AFF',
+        backgroundColor: '#FFFFFF',
     },
 
-    modalBtn : {
-        backgroundColor : COLORS.accent,
-        padding : 8,
-        borderRadius : 8,
-        alignSelf : 'center'
+    modalBtn: {
+        backgroundColor: COLORS.accent || COLORS.primary || '#007AFF',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        shadowColor: COLORS.accent || '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
     },
 
-    modalBtnText : {
-        color : COLORS.text,
-        fontWeight : 'bold'
+    modalBtnText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '600',
     }
 });
 

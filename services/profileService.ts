@@ -1,7 +1,10 @@
 import { storage, auth, db } from "@/config/firebaseConfig";
 import { getDownloadURL, ref, uploadBytes, deleteObject } from "firebase/storage";
-import { setDoc, getDoc, doc, serverTimestamp } from "firebase/firestore";
+import { setDoc, getDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import * as Crypto from 'expo-crypto'
+
+//error
+import { handleFirebaseError } from "@/utils/handleFirebaseError";
 
 
 export const uploadImage = async (photo : Blob) => {
@@ -73,6 +76,38 @@ export const uploadImage = async (photo : Blob) => {
     } 
 }
 
-export const updateUsername = async (userName : string) => {
-    return 
+export const updateUsername = async (username : string) => {
+
+    const user = auth.currentUser
+
+    if(!user) {
+        return({
+            status : "Error",
+            message : "No hay una sesion activa"
+        })
+    }
+
+    if(!username) {
+        return({
+            status : "Error",
+            message : "No se encontro el nombre de usuario"
+        })
+    }
+    
+    const userRef = doc(db, 'profiles', user.uid)
+
+    try {
+        await updateDoc(userRef, {
+            username: username
+        })
+
+        return {
+            status: "Success",
+            message: "Nombre de usuario actualizado correctamente"
+        }
+
+    } catch (error) {
+        throw new Error(handleFirebaseError(error))
+    }
+
 }
