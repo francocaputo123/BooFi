@@ -2,22 +2,26 @@ import { useEffect } from "react";
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useEpubUpload } from "../../utils/useEpubUpload";
+import bookStore from "../../store/bookStore";
+import { prepareCover } from "../../utils/prepareCover";
 import { COLORS, SPACING, FONTSIZE } from "../../constants/theme";
 
 const EditorScreen = () => {
   const { status, errorMessage, parsedBook, pickAndUploadEpub } = useEpubUpload();
   const router = useRouter();
+  const saveBook = bookStore((state) => state.saveBook);
 
   useEffect(() => {
     if (status === "success" && parsedBook) {
+      // El libro va al store y solo viaja el id: los capítulos completos son demasiado pesados para la URL
+      saveBook(parsedBook);
+      // TEMPORAL (prueba del Paso 3.2): se saca en el Paso 4
+      prepareCover(parsedBook.coverUri).then((cover) => {
+        console.log("Portada achicada:", cover ? Math.round((cover.length * 3) / 4 / 1024) + " KB" : "sin portada");
+      });
       router.push({
         pathname: "/books/Details",
-        params: {
-          id: "1",
-          title: parsedBook.title,
-          author: parsedBook.author,
-          chapters: JSON.stringify(parsedBook.chapters),
-        },
+        params: { id: parsedBook.id },
       });
     }
   }, [status, parsedBook]);
