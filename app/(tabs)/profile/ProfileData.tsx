@@ -59,12 +59,22 @@ const ProfileData = () => {
         setIsModalOpen(true)
     }
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if(!currentField) return 
 
         switch(currentField) {
             case 'username' :
-                return
+                const response = await updateUsername(change)
+
+                if(response) {
+
+                    setAuthData({
+                        [currentField] : change
+                    })
+                    
+                    setIsModalOpen(false)
+                    return
+                }
         }
     }
 
