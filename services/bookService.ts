@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL, deleteObject, uploadBytes } from "firebase/storage"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
 import * as FileSystem from "expo-file-system/legacy"
 import { db, storage } from "@/config/firebaseConfig"
 import { File, Paths } from 'expo-file-system';
