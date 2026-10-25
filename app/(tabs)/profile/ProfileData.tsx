@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 // constants
 import { SPACING, COLORS } from '@/constants/theme';
@@ -22,9 +23,11 @@ import Modal from '@/components/Modal';
 import { ProfileKey } from '@/types/profile.types';
 
 //services
-import { updateUsername } from '@/services/profileService';
+import { updateUsername, updateBio } from '@/services/profileService';
 
 const ProfileData = () => {
+
+    const router = useRouter()
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [change, setChange] = useState("")
@@ -49,11 +52,12 @@ const ProfileData = () => {
 
     const actions = {
         updateUsername : () => handleOpenModal('username'),
-        updateBio : () => handleOpenModal('bio')
+        updateBio : () => handleOpenModal('bio'),
+        updatePassword : () => router.push('/profile/ProfilePassword')
     }
 
     const handleOpenModal = (fieldKey : ProfileKey) => {
-        setCurrentField('username')
+        setCurrentField(fieldKey)
         setFieldText(fieldTitles[fieldKey] || "Actualizar")
         setChange(userData[fieldKey] || "")
         setIsModalOpen(true)
@@ -63,7 +67,7 @@ const ProfileData = () => {
         if(!currentField) return 
 
         switch(currentField) {
-            case 'username' :
+            case 'username' : {
                 const response = await updateUsername(change)
 
                 if(response) {
@@ -75,6 +79,22 @@ const ProfileData = () => {
                     setIsModalOpen(false)
                     return
                 }
+                break
+            }
+            case 'bio' : {
+                const response = await updateBio(change)
+
+                if(response) {
+
+                    setAuthData({
+                        [currentField] : change
+                    })
+                    
+                    setIsModalOpen(false)
+                    return
+                }
+                break
+            }
         }
     }
 
@@ -92,24 +112,26 @@ const ProfileData = () => {
                                 <Pressable
                                 key={field.text}
                                 onPress={actions[field.action as keyof typeof actions]}
-                                >
-                                    <View style={styles.rowContainer}>
-                                        <Ionicons name={field.icon as any} size={24} color={COLORS.secondary || "black"} />
-                                        <View style={styles.textWrapper}>
-                                            <Text style={styles.rowTitle}>{field.label}</Text>
-                                            <Text style={styles.rowLabel}>
-                                                {
-                                                    field.type == "text" ? (
-                                                        userData[field.key as keyof typeof userData]
-                                                    ) : (
-                                                        field.text
-                                                    )
-                                                }
-                                            </Text>
-                                        </View>
-                                        <Ionicons name="arrow-forward" size={24} color={COLORS.primary || "black"} />
-                                    </View>
-                                </Pressable>
+                                style={({ pressed }) => [
+                                    styles.rowContainer, 
+                                    pressed && styles.btnPressed 
+                                ]}
+                            >
+                                <Ionicons name={field.icon as any} size={24} color={COLORS.secondary || "black"} />
+                                <View style={styles.textWrapper}>
+                                    <Text style={styles.rowTitle}>{field.label}</Text>
+                                    <Text style={styles.rowLabel}>
+                                        {
+                                            field.type == "text" ? (
+                                                userData[field.key as keyof typeof userData]
+                                            ) : (
+                                                field.text
+                                            )
+                                        }
+                                    </Text>
+                                </View>
+                                <Ionicons name="arrow-forward" size={24} color={COLORS.primary || "black"} />
+                            </Pressable>
                             )
                         })
                     }
@@ -118,13 +140,21 @@ const ProfileData = () => {
                     {
                         profile.bottom.map((field, i) => {
                             return(
-                                <View key={field.text} style={styles.rowContainer}>
+                                <Pressable
+                                    key={field.text}
+                                    onPress={actions[field.action as keyof typeof actions]}
+                                    style={({ pressed }) => [
+                                        styles.rowContainer,
+                                        pressed && styles.btnPressed
+                                    ]}
+                                >
                                     <Ionicons name={field.icon as any} size={24} color={COLORS.secondary || "black"} />
                                     <View style={styles.textWrapper}>
                                         <Text style={styles.rowTitle}>{field.label}</Text>
                                         <Text style={styles.rowLabel}>{field.text}</Text>
                                     </View>
-                                </View>
+                                    <Ionicons name="arrow-forward" size={24} color={COLORS.primary || "black"} />
+                                </Pressable>
                             )
                         })
                     }
@@ -138,16 +168,19 @@ const ProfileData = () => {
                 <Text style={styles.titleIpt}>{fieldText}</Text>
                 
                 <TextInput
-                    value={change}
-                    onChangeText={setChange}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    style={[
-                        styles.ipt,
-                        isFocused && styles.iptFocused
-                    ]}
-                    placeholder="Escribe el nuevo valor..."
-                    placeholderTextColor="#999"
+                value={change}
+                onChangeText={setChange}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                style={[
+                styles.ipt,
+                isFocused && styles.iptFocused
+                ]}
+                placeholder="Escribe el nuevo valor..."
+                placeholderTextColor="#999"
+                multiline={true}
+                numberOfLines={4} 
+                textAlignVertical="top" 
                 />
 
                 <Pressable
@@ -238,6 +271,8 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: COLORS.text || '#1a1a1a',
         marginBottom: 20,
+        minHeight: 50, 
+        maxHeight: 150, 
     },
 
     iptFocused: {
@@ -264,6 +299,11 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 15,
         fontWeight: '600',
+    },
+
+    btnPressed: {
+        opacity: 0.90,
+        transform: [{ scale: 0.99 }],
     }
 });
 

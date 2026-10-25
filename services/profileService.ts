@@ -112,7 +112,11 @@ export const updateUsername = async (username : string) => {
         })
     }
 
-    if(!username) {
+    const notAllowed = ["", null, undefined]
+
+    const isInvalid = notAllowed.includes(username)
+
+    if(isInvalid) {
         return({
             status : "Error",
             message : "No se encontro el nombre de usuario"
@@ -135,4 +139,43 @@ export const updateUsername = async (username : string) => {
         throw new Error(handleFirebaseError(error))
     }
 
+}
+
+export const updateBio = async (bio : string) => {
+    
+    const user = auth.currentUser
+
+    if(!user) {
+        return({
+            status : "Error",
+            message : "No hay una sesion activa"
+        })
+    }
+
+    const notAllowed = ["", null, undefined]
+
+    const isInvalid = notAllowed.includes(bio)
+
+    if(isInvalid) {
+        return({
+            status : "Error",
+            message : "No se encontro ninguna biografia"
+        })
+    }
+
+    const userRef = doc(db, 'profiles', user.uid)
+
+    try {
+        await updateDoc(userRef, {
+            bio: bio
+        })
+
+        return {
+            status: "Success",
+            message: "Bio actualizada correctamente"
+        }
+
+    } catch (error) {
+        throw new Error(handleFirebaseError(error))
+    }
 }
