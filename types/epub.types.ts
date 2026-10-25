@@ -4,6 +4,8 @@
  * (Probablemente sirva para sinopsis, si, seguro sirve)
  */
 
+import { ChapterAccess } from "@/types/chapter.types";
+
 export interface EpubChapter {
     id: string;
     title: string;
@@ -11,6 +13,8 @@ export interface EpubChapter {
     textPreview: string;
     /* Capitulo completo ya estructurado (parrafos, titulos, listas...) con su formato */
     blocks: EpubBlock[];
+    /* Tipo de acceso elegido al publicar; si no viene se asume gratis (DEFAULT_CHAPTER_ACCESS) */
+    access?: ChapterAccess;
 }
 
 export type EpubTextAlign = "left" | "center" | "right" | "justify";
@@ -75,6 +79,8 @@ export interface EpubParsedBook {
     synopsis: string;
     /* Ruta en el celu de la portada tal cual venia en el epub, o null si no trae */
     coverUri: string | null;
+    /* Categorias elegidas por el autor; los EPUB importados no las traen */
+    tags?: string[];
     chapters: EpubChapter[];
 }
 

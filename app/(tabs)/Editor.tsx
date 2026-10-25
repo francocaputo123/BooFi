@@ -3,6 +3,7 @@ import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-nati
 import { useRouter } from "expo-router";
 import { useEpubUpload } from "../../utils/useEpubUpload";
 import bookStore from "../../store/bookStore";
+import DraftList from "../../components/DraftList"
 import { prepareCover } from "../../utils/prepareCover";
 import { COLORS, SPACING, FONTSIZE } from "../../constants/theme";
 
@@ -39,6 +40,7 @@ const EditorScreen = () => {
       {status === "error" && (
         <Text style={styles.errorText}>{errorMessage}</Text>
       )}
+      <DraftList />
     </View>
   );
 };

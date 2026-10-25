@@ -13,6 +13,8 @@ import { useAuthorName } from '../../hooks/useAuthorName';
 import { bookRouteParamsSchema } from '../../schema/reading.schema';
 import { getReadButtonLabel } from '../../utils/readingProgress';
 import { clampChapterIndex, formatChapterCounter } from '../../utils/chapterNavigation';
+import { ACCESS_LABELS, DEFAULT_CHAPTER_ACCESS } from '../../constants/chapterAccess';
+
 
 /**
  * Pantalla de detalle de un EPUB. Solo se llega a ella tocando un libro
@@ -57,6 +59,8 @@ const EpubDetailScreen = () => {
   }
 
   const { title, chapters: bookChapters, synopsis, coverUri } = book;
+  const categories = book.tags?.length ? book.tags : CATEGORIES_MOCK;
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -74,7 +78,7 @@ const EpubDetailScreen = () => {
         <Text style={styles.text}>⭐ {RATING_MOCK}</Text>
 
         <View style={styles.categoriesRow}>
-          {CATEGORIES_MOCK.map((category) => (
+          {categories.map((category) => (
             <Text key={category} style={styles.categoryTag}>{category}</Text>
           ))}
         </View>
@@ -101,7 +105,10 @@ const EpubDetailScreen = () => {
         <Text style={styles.sectionTitle}>CAPÍTULOS · {bookChapters.length}</Text>
         {bookChapters.map((chapter, index) => (
           <View key={chapter.id} style={styles.chapterRow}>
-            <Text style={styles.text}>{index + 1}. {chapter.title}</Text>
+            <Text style={[styles.text, styles.chapterTitle]}>{index + 1}. {chapter.title}</Text>
+            <Text style={styles.accessTag}>
+              {ACCESS_LABELS[chapter.access ?? DEFAULT_CHAPTER_ACCESS]}
+            </Text>
           </View>
         ))}
       </ScrollView>
@@ -209,6 +216,19 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.s,
     borderBottomColor: COLORS.border,
     borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.s,
+  },
+  chapterTitle: { flex: 1 },
+  accessTag: {
+    backgroundColor: COLORS.surface,
+    color: COLORS.textSecondary,
+    borderRadius: 14,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: SPACING.xs,
+    fontSize: FONTSIZE.xs,
   },
 });
 

@@ -23,6 +23,7 @@ import { normalizeTitle } from "@/utils/normalizeTitle"
 import { buildChapterImagePath, buildChapterPath, buildCoverPath } from "@/utils/storagePaths"
 import { handleFirebaseError } from "@/utils/handleFirebaseError"
 import { prepareImageForUpload } from "@/utils/prepareImage"
+import { DEFAULT_CHAPTER_ACCESS } from "@/constants/chapterAccess"
 
 /*
  * Sube una imagen JPEG que viene en base64.
@@ -217,7 +218,11 @@ export const publishBook = async (params: PublishBookParams): Promise<PublishBoo
             publishedAt: new Date().toISOString(),
             // Dato original del epub: se guarda pero no se muestra en la app (ver types/book.types.ts)
             originalAuthor: book.author,
-            chapters: preparedChapters.map((chapter) => ({ index: chapter.index, title: chapter.title })),
+            chapters: preparedChapters.map((chapter) => ({
+                index: chapter.index,
+                title: chapter.title,
+                access: book.chapters[chapter.index].access ?? DEFAULT_CHAPTER_ACCESS,
+            })),
         }
 
         // Esto va al final: asi el Home nunca ve un libro a medias
