@@ -1,4 +1,5 @@
 import { EpubBlock, EpubParsedBook } from "./epub.types"
+import { ChapterAccess } from "./chapter.types"
 export interface Book {
     id: string
     title: string
@@ -23,6 +24,8 @@ export type BookVisibility = "public" | "paid"
 export interface PublishedChapterSummary {
     index: number
     title: string
+    /* Tipo de acceso. Opcional*/
+    access?: ChapterAccess
 }
 
 /* Lo que se guarda en Firestore: documento books/{bookId} */
