@@ -1,5 +1,6 @@
 import { doc, getDoc, setDoc } from "firebase/firestore"
-import { ref, uploadString, getDownloadURL, deleteObject, uploadBytes } from "firebase/storage"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
+import * as FileSystem from "expo-file-system/legacy"
 import { db, storage } from "@/config/firebaseConfig"
 import { File, Paths } from 'expo-file-system';
 import {
@@ -24,10 +25,37 @@ import { handleFirebaseError } from "@/utils/handleFirebaseError"
 import { prepareImageForUpload } from "@/utils/prepareImage"
 import { DEFAULT_CHAPTER_ACCESS } from "@/constants/chapterAccess"
 
+/*
+ * Sube una imagen JPEG que viene en base64.
+ * No se usa uploadString porque en React Native falla al crear el Blob desde un ArrayBuffer.
+ * 1) Guarda la imagen en un archivo temporal del celu
+ * 2) Hace fetch de ese archivo para obtener un Blob (React Native si soporta esto)
+ * 3) Sube el Blob con uploadBytes
+ * 4) Borra el archivo temporal, salga bien o mal
+ */
+const uploadBase64Jpeg = async (storageRef: ReturnType<typeof ref>, base64: string) => {
+    const tempUri = `${FileSystem.cacheDirectory}upload-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.jpg`
+
+    try {
+        await FileSystem.writeAsStringAsync(tempUri, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+        })
+        const response = await fetch(tempUri)
+        const blob = await response.blob()
+        await uploadBytes(storageRef, blob, { contentType: JPEG_CONTENT_TYPE })
+    } finally {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true })
+    }
+}
+
 /* Sube un capitulo como archivo JSON (sin espacios de mas, para que pese lo menos posible) */
 const uploadChapter = async (bookId: string, chapter: PublishedChapter) => {
     const chapterRef = ref(storage, buildChapterPath(bookId, chapter.index))
-    await uploadString(chapterRef, JSON.stringify(chapter), "raw", {
+    // Un Blob armado desde un string si esta soportado en React Native
+    const jsonBlob = new Blob([JSON.stringify(chapter)], { type: CHAPTER_CONTENT_TYPE })
+    await uploadBytes(chapterRef, jsonBlob, {
         contentType: CHAPTER_CONTENT_TYPE,
     })
 }
@@ -54,20 +82,7 @@ const uploadChapterImage = async (
     const imagePath = buildChapterImagePath(bookId, chapterIndex, imageIndex)
     uploadedPaths.push(imagePath)
     const imageRef = ref(storage, imagePath)
-
-    // ✅ CORREGIDO: Usar archivo temporal y uploadBytes en lugar de uploadString para evitar errores de Blob en RN
-    const fileName = `ch_${chapterIndex}_img_${imageIndex}_${Date.now()}.jpg`
-    const file = new File(Paths.cache, fileName)
-    if (!file.exists) {
-        file.create()
-    }
-    file.write(base64, { encoding: 'base64' })
-    const buffer = await file.bytes()
-
-    await uploadBytes(imageRef, buffer, {
-        contentType: JPEG_CONTENT_TYPE,
-    })
-
+    await uploadBase64Jpeg(imageRef, base64)
     return await getDownloadURL(imageRef)
 }
 
@@ -184,23 +199,11 @@ export const publishBook = async (params: PublishBookParams): Promise<PublishBoo
         // Portada: se sube como imagen y en Firestore queda solo el link
         let coverUrl: string | null = null;
         if (coverJpegBase64) {
-            const coverPath = buildCoverPath(bookId);
-            uploadedPaths.push(coverPath);
-            const coverRef = ref(storage, coverPath);
-
-            // ✅ CORREGIDO: Usar archivo temporal y uploadBytes para la portada
-            const file = new File(Paths.cache, `cover_${bookId}.jpg`);
-            if (!file.exists) {
-                file.create();
-            }
-            file.write(coverJpegBase64, { encoding: 'base64' });
-            const blobOrBuffer = await file.bytes();
-
-            await uploadBytes(coverRef, blobOrBuffer, {
-                contentType: JPEG_CONTENT_TYPE,
-            });
-
-            coverUrl = await getDownloadURL(coverRef);
+            const coverPath = buildCoverPath(bookId)
+            uploadedPaths.push(coverPath)
+            const coverRef = ref(storage, coverPath)
+            await uploadBase64Jpeg(coverRef, coverJpegBase64)
+            coverUrl = await getDownloadURL(coverRef)
         }
 
         const bookData: PublishedBookData = {

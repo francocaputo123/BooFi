@@ -27,6 +27,11 @@ import { estimateReadingMinutesPerChapter, formatReadingTime } from "@/utils/rea
 import { ChapterAccess } from "@/types/chapter.types"
 import { EpubParsedBook } from "@/types/epub.types"
 import { DEFAULT_CHAPTER_ACCESS } from "@/constants/chapterAccess"
+// TEST TEST
+const ALLOW_PUBLISH_WITHOUT_AUTHOR = __DEV__
+const TEST_AUTHOR_NAME = "Autor de prueba"
+// TEST TEST
+
 
 type PublishStatus = "idle" | "publishing" | "success" | "error" 
 
@@ -71,6 +76,12 @@ const PublishScreen = () => {
     // El autor que firma es el usuario logueado (ver profiles/{userId}.username)
     const authorName = useAuthorName()
     const saveBook = bookStore((state) => state.saveBook)
+    // TEST TEST
+    const effectiveAuthorName =
+    authorName || (ALLOW_PUBLISH_WITHOUT_AUTHOR ? TEST_AUTHOR_NAME : "")
+    // TEST TEST
+
+
 
     // La sinopsis del epub se precarga como valor inicial; el autor puede reescribirla o dejarla
     const [synopsis, setSynopsis] = useState(book?.synopsis ?? "")
@@ -98,7 +109,7 @@ const PublishScreen = () => {
             return
         }
 
-        if (!book || !authorId || !authorName) {
+        if (!book || !authorId || !effectiveAuthorName) {
             setStatus("error")
             setErrorMessage("Faltan datos para publicar. Volvé a cargar el libro.")
             return
@@ -114,7 +125,8 @@ const PublishScreen = () => {
             const coverJpegBase64 = await prepareCover(book.coverUri)
             const result = await publishBook({
                 authorId,
-                authorName,
+                // TEST TEST
+                authorName: effectiveAuthorName,
                 book: bookWithAccess,
                 synopsis: validation.data.synopsis,
                 tags: validation.data.tags,
