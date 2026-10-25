@@ -19,7 +19,7 @@ export interface authState {
     bio : string,
     photoUrl? : string | undefined,
     isAuthenticated : boolean,
-    setAuthData : (data: authTypes) => void,
+    setAuthData : (data: Partial<authTypes>) => void,
     setPhoto : (data: Partial<authTypes>) => void,
     loggout : () => void
 }

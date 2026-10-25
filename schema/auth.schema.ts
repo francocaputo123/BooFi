@@ -29,4 +29,23 @@ const loginSchema = z.object({
     .min(1, "La contraseña es obligatoria.")
 });
 
-export {registerSchema, loginSchema}
+const validatePassword = z.object({
+  currentPasswod : z.string(),
+
+  
+  newPassword : z.string()
+    .min(8, "La contraseña debe tener mínimo 8 caracteres")
+    .max(20, "La contraseña supera la cantidad de caracteres (20)")
+    .regex(/[A-Z]/, "La contraseña debe tener al menos una mayúscula")
+    .regex(/[a-z]/, "La contraseña debe tener al menos una minúscula")
+    .regex(/[0-9]/, "La contraseña debe tener al menos un número"),
+
+  repeatPassword : z.string()
+
+})
+.refine((data) => data.newPassword === data.repeatPassword, {
+  message : "Las contraseñas no coinciden",
+  path : ["repeatPassword"]
+})
+
+export {registerSchema, loginSchema, validatePassword}

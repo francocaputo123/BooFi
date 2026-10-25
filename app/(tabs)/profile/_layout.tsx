@@ -31,6 +31,13 @@ const ProfileLayout = () => {
           headerShown: true,
         }} 
       />
+      <Stack.Screen 
+        name="ProfilePassword" 
+        options={{ 
+          title: 'Contraseña',
+          headerShown: true,
+        }} 
+      />
     </Stack>
   )
 }

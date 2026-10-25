@@ -1,12 +1,25 @@
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
-import { Pressable, StyleSheet, Text, TouchableOpacity, View, Alert, Linking, ViewStyle, TextStyle, Image} from 'react-native';
+import { 
+  Pressable, 
+  StyleSheet, 
+  Text, 
+  TouchableOpacity, 
+  View, 
+  Alert, 
+  Linking, 
+  ViewStyle, 
+  TextStyle, 
+  Image,
+  ActivityIndicator,
+  Modal
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker'
+import * as ImagePicker from 'expo-image-picker';
 
 // constants
-import { COLORS } from '@/constants/theme';
+import { COLORS, SPACING } from '@/constants/theme';
 
 // data
 import profileCameraData from '@/data/profileCameraData.json';
@@ -24,9 +37,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { handleImageVerification } from '@/utils/handleVerification';
 
 const ProfileCamera = () => {
-  
-  const setPhoto = authStore((state) => state.setPhoto) 
-  const profilePhoto = authStore((state) => state.photoUrl)
+  const setPhoto = authStore((state) => state.setPhoto);
+  const profilePhoto = authStore((state) => state.photoUrl);
   
   const router = useRouter();
 
@@ -34,7 +46,35 @@ const ProfileCamera = () => {
   const [facing, setFacing] = useState<CameraType>('back');
   const [isOpen, setIsOpen] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
-  const [expand, setExpand] = useState(false)
+  const [expand, setExpand] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const processAndUploadBlob = async (blob: Blob) => {
+    try {
+      setLoading(true);
+      const verified = handleImageVerification(blob);
+
+      if (verified?.status === "error") {
+        router.back();
+        Alert.alert('Error en la camara', verified?.message, [{ text: 'Cerrar', style: 'cancel' }]);
+        return;
+      }
+      
+      const image = await uploadImage(blob);
+
+      /**
+- Importante actualizar la store.
+       */
+      if (image) {
+        setPhoto({ photoUrl: image });
+        router.back();
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const actions = {
     handleCameraFacing: () => {
@@ -42,51 +82,25 @@ const ProfileCamera = () => {
     },
 
     handleTakePicture: async () => {
-      if (cameraRef.current) {
+      if (cameraRef.current && !loading) {
         try {
           /** 
             Se convierte en un blob para pasarlo a firebase
           */
+          const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+          if (!photo?.uri) return;
 
-          const photo = await cameraRef.current.takePictureAsync()
-          const res = await fetch(photo?.uri)
-          const blob = await res.blob()
+          const res = await fetch(photo.uri);
+          const blob = await res.blob();
 
-          const verified = handleImageVerification(blob)
-
-          if(verified?.status == "error") {
-            router.back()
-            return(
-              Alert.alert(
-                'Error en la camara',
-                verified?.message,
-                [
-                  { text: 'Cerrar', style: 'cancel' },
-                ]
-              )
-            )
-          }
-          
-          const image = await uploadImage(blob) 
-
-          /**
-           * Importante actualizar la store.
-           */
-
-          if(image) {
-            setPhoto({
-              photoUrl : image
-            })
-            router.back()
-          }
-
+          await processAndUploadBlob(blob);
         } catch (error) {
-          throw error
+          throw error;
         }
       }
     },
 
-    handleOpenCamera : async () => {
+    handleOpenCamera: async () => {
       if (permission?.granted) {
         setIsOpen(true);
         return;
@@ -104,46 +118,22 @@ const ProfileCamera = () => {
             { text: 'Cancelar', style: 'cancel' },
             { text: 'Abrir Ajustes', onPress: () => Linking.openSettings() },
           ]
-        )
+        );
       }
     },
 
-    handlePickImage : async () => {
+    handlePickImage: async () => {
       const photo = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
         quality: 1,
-      })
+      });
 
-      if (!photo.canceled) {
+      if (!photo.canceled && photo.assets[0]?.uri) {
         try {
-          const res = await fetch(photo?.assets[0].uri)
-          const blob = await res.blob() 
-
-          const verified = handleImageVerification(blob)
-
-          if(verified?.status == "error") {
-            router.back()
-            return(
-              Alert.alert(
-                'Error en la camara',
-                verified?.message,
-                [
-                  { text: 'Cerrar', style: 'cancel' },
-                ]
-              )
-            )
-          }
-
-          const image = await uploadImage(blob)
-
-          if(image) {
-            setPhoto({
-              photoUrl : image
-            })
-            router.back()
-          }
-
+          const res = await fetch(photo.assets[0].uri);
+          const blob = await res.blob();
+          await processAndUploadBlob(blob);
         } catch (error) {
           
         }
@@ -154,22 +144,38 @@ const ProfileCamera = () => {
           [
             { text: 'Cerrar', style: 'cancel' }
           ]
-        )
+        );
       }
     }
-
-  }
+  };
 
   return (
     <View style={styles.container}>
       {isOpen ? (
         <View style={styles.cameraContainer}>
           <CameraView style={StyleSheet.absoluteFillObject} facing={facing} ref={cameraRef} />
+          
+          <SafeAreaView style={styles.cameraHeader}>
+            <TouchableOpacity 
+              style={styles.closeCameraButton}
+              onPress={() => setIsOpen(false)}
+            >
+              <Ionicons name="close-circle" size={38} color="white" />
+            </TouchableOpacity>
+          </SafeAreaView>
+
+          {loading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={COLORS.primary || '#007AFF'} />
+            </View>
+          )}
+
           <View style={styles.buttonContainer}>
             {profileCameraData.active.map((btn, i) => {
               return (
                 <TouchableOpacity
                   key={i}
+                  disabled={loading}
                   style={styles[btn.styles as keyof typeof styles] as ViewStyle}
                   onPress={actions[btn.action as keyof typeof actions]}
                 >
@@ -181,54 +187,69 @@ const ProfileCamera = () => {
         </View>
       ) : (
         <SafeAreaView style={styles.safeAreaContainer}>
-          <Pressable
-          style={styles.imageBtn}
-          onPress={() => setExpand(true)}
-          >
-            <Image 
-            style={styles.profileImage}
-            alt="Foto de perfil"
-            source={profilePhoto ? { uri : profilePhoto } : require('@/assets/images/default_profile.png')}
-            />
-          </Pressable>
-          <View>
+
+          <View style={styles.imageSection}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.imageBtn,
+                pressed && { opacity: 0.9 }
+              ]}
+              onPress={() => setExpand(true)}
+            >
+              <Image 
+                style={styles.profileImage}
+                accessibilityLabel="Foto de perfil"
+                source={profilePhoto ? { uri: profilePhoto } : require('@/assets/images/default_profile.png')}
+              />
+              <View style={styles.zoomHint}>
+                <Ionicons name="search-outline" size={16} color="white" />
+                <Text style={styles.zoomText}>Tocar para ampliar</Text>
+              </View>
+            </Pressable>
+          </View>
+
+          <View style={styles.actionsCard}>
             <Text style={styles.message}>Elije tu imagen de perfil</Text>
-            {
+            
+            {loading ? (
+              <ActivityIndicator color={COLORS.primary || '#007AFF'} style={{ marginVertical: 20 }} />
+            ) : (
               profileCameraData.notActive.map((btn, i) => {
-                return(
+                return (
                   <Pressable 
-                  key={i}
-                  onPress={actions[btn.action as keyof typeof actions]} 
-                  style={styles[btn.styles as keyof typeof styles] as ViewStyle}
+                    key={i}
+                    onPress={actions[btn.action as keyof typeof actions]} 
+                    style={({ pressed }) => [
+                      styles[btn.styles as keyof typeof styles] as ViewStyle,
+                      pressed && styles.btnPressed
+                    ]}
                   >
                     <Text style={styles[btn.text.styles as keyof typeof styles] as TextStyle}>
                       {btn.text.label}
                     </Text>
                   </Pressable>
-                )
+                );
               })
-            }
+            )}
           </View>
         </SafeAreaView>
       )}
-      {
-        expand && (
-          <View
-          style={styles.overlayContainer}
+
+      <Modal visible={expand} transparent animationType="fade">
+        <View style={styles.overlayContainer}>
+          <TouchableOpacity 
+            style={styles.closeOverlayBtn} 
+            onPress={() => setExpand(false)}
           >
-            <Image
+            <Ionicons name="close" size={32} color="white" />
+          </TouchableOpacity>
+          <Image
             style={styles.overlayImage}
-            alt="Foto de perfil"
-            source={profilePhoto ? { uri : profilePhoto } : require('@/assets/images/default_profile.png')}
-            />
-            <TouchableOpacity
-                  onPress={() => setExpand(false)}
-                >
-                  <Ionicons name="close" size={60} color="red" />
-                </TouchableOpacity>
-          </View>
-        )
-      }
+            accessibilityLabel="Foto de perfil ampliada"
+            source={profilePhoto ? { uri: profilePhoto } : require('@/assets/images/default_profile.png')}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -236,55 +257,123 @@ const ProfileCamera = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
+    backgroundColor: COLORS.background || '#F8F9FA',
   },
 
   safeAreaContainer: {
-    width: '80%',
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: SPACING?.m || 16,
+  },
+
+  backButton: {
+    padding: 4,
+  },
+
+  imageSection: {
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+
+  imageBtn: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+
+  profileImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 100, 
+    borderWidth: 4,
+    borderColor: COLORS.primary || '#007AFF',
+  },
+
+  zoomHint: {
+    position: 'absolute',
+    bottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  zoomText: {
+    color: 'white',
+    fontSize: 12,
+  },
+
+  actionsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+
+  message: {
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 16,
   },
 
   btn: {
-    backgroundColor: COLORS.primary,
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary || '#007AFF',
+    paddingVertical: 14,
+    borderRadius: 12,
     marginBottom: 12,
+    alignItems: 'center',
+  },
+
+  btnPressed: {
+    opacity: 0.8,
   },
 
   btnText: {
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
+    fontSize: 15,
   },
-  
+
   cameraContainer: {
     flex: 1,
     width: '100%',
     height: '100%',
-    position: 'relative',
   },
 
-  message: {
-    textAlign: 'center',
-    paddingBottom: 10,
+  cameraHeader: {
+    position: 'absolute',
+    top: 10,
+    right: 20,
+    zIndex: 20,
+  },
+
+  closeCameraButton: {
+    padding: 8,
   },
 
   buttonContainer: {
     position: 'absolute',
-    bottom: 64,
+    bottom: 48,
     flexDirection: 'row',
-    backgroundColor: 'transparent',
     width: '100%',
-    paddingHorizontal: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    gap: 24,
     zIndex: 10,
   },
 
   pictureButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     borderWidth: 4,
     borderColor: 'white',
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -293,46 +382,44 @@ const styles = StyleSheet.create({
   },
 
   flipButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  profileImage : {
-    width: 250,
-    height: 250,
-    borderRadius: 150, 
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 30,
+  },
+
+  overlayContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  closeOverlayBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+
+  overlayImage: {
+    width: 320,
+    height: 320,
+    borderRadius: 160, 
     borderWidth: 2,
-    borderColor: COLORS.primary,
-    resizeMode: 'cover',
-  },
-
-  imageBtn: {
-    alignItems : 'center',
-    marginVertical : 10
-  },
-
-  overlayContainer : {
-    position : 'absolute',
-    backgroundColor : 'rgb(0, 0, 0, 0.7)',
-    width : '100%',
-    height : '100%',
-    zIndex : 100,
-    alignItems : 'center',
-    paddingVertical : 30
-  },
-
-  overlayImage : {
-    width: 350,
-    height: 350,
-    borderRadius: 200, 
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    resizeMode: 'cover',
+    borderColor: COLORS.primary || '#007AFF',
   }
 });
 
-export default ProfileCamera;
+export default ProfileCamera
