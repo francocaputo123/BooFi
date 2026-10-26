@@ -1,4 +1,5 @@
 import { FlatList, StyleSheet, Text, useWindowDimensions, View } from "react-native"
+import { useRouter } from "expo-router"
 import BookCard from "@/components/BookCard"
 import SearchBar from "@/components/ui/SearchBar"
 import GenreChips from "@/components/ui/GenreChips"
@@ -13,6 +14,7 @@ import { useBookSearch } from "@/hooks/useBookSearch"
  */
 const BookSearch = () => {
     const { width: screenWidth } = useWindowDimensions()
+    const router = useRouter()
     const {
         books,
         filteredBooks,
@@ -76,7 +78,13 @@ const BookSearch = () => {
                     keyExtractor={(book) => book.id}
                     numColumns={GRID_COLUMNS}
                     columnWrapperStyle={styles.gridRow}
-                    renderItem={({ item }) => <BookCard book={item} width={cardWidth} />}
+                    renderItem={({ item }) => (
+                        <BookCard
+                            book={item}
+                            width={cardWidth}
+                            onPress={() => router.push({ pathname: "/books/Details", params: { id: item.id } })}
+                        />
+                    )}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                     refreshing={isRefreshing}
