@@ -30,7 +30,7 @@ const loginSchema = z.object({
 });
 
 const validatePassword = z.object({
-  currentPasswod : z.string(),
+  currentPassword : z.string(),
 
   
   newPassword : z.string()

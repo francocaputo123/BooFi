@@ -12,6 +12,8 @@ export const handleFirebaseError = (error : any) => {
             return "Se cortó la conexión mientras se subía el libro. Probá de nuevo"
         case 'permission-denied' :
             return "No tenés permiso para guardar el libro"
+        case 'auth/too-many-requests' :
+            return "Demasidas peticiones. Espera unos minutos."
         default :
             return "Error en la base de datos"
     }

@@ -1,10 +1,15 @@
 import { storage, auth, db } from "@/config/firebaseConfig";
 import { getDownloadURL, ref, uploadBytes, deleteObject } from "firebase/storage";
 import { setDoc, getDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import * as Crypto from 'expo-crypto'
 
 //error
 import { handleFirebaseError } from "@/utils/handleFirebaseError";
+
+//types 
+import { passwordFields } from "@/types/password.types";
+import { useSortedScreens } from "expo-router/build/useScreens";
 
 
 export const uploadImage = async (photo : Blob) => {
@@ -178,4 +183,41 @@ export const updateBio = async (bio : string) => {
     } catch (error) {
         throw new Error(handleFirebaseError(error))
     }
+}
+
+export const updatePass = async (passwordFields : passwordFields) => {
+    
+    const user = auth.currentUser
+
+    if(!user) {
+        return({
+            status : "Error",
+            message : "No hay una sesion activa"
+        })
+    }
+
+    if(user && user.email) {
+
+        try {
+
+            const credential = EmailAuthProvider.credential(user.email, passwordFields.currentPassword)
+            
+            await reauthenticateWithCredential(user, credential)
+
+            await updatePassword(user, passwordFields.newPassword)
+
+            return {
+                status: "Success",
+                message: "¡Contraseña actualizada con éxito!"
+            }
+        
+        } catch (error) {
+            return {
+                status: "Error",
+                message: handleFirebaseError(error)
+            }
+        }
+    
+    }
+    
 }
