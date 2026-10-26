@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 
 //schema
 import { validatePassword } from '@/schema/auth.schema'
@@ -15,9 +16,16 @@ import profilePassword from '@/data/profilePassword.json'
 //types
 import { passwordFields } from '@/types/password.types';
 
+//services
+import { updatePass } from '@/services/profileService';
+
 const ProfilePassword = () => {
 
     const [error, setError] = useState<string[]>([])
+
+    const [success, setSuccess] = useState<string>("")
+
+    const router = useRouter()
 
     const [password, setPassword] = useState<passwordFields>({
         currentPassword : "",
@@ -47,22 +55,56 @@ const ProfilePassword = () => {
         }))
     }
 
-    const handleUpdatePassword = () => {
+    const handleUpdatePassword = async () => {
 
         const notAllowed = [null, "", undefined]
 
         const isInvalid = Object.values(password).some((field) => notAllowed.includes(field))
 
         if(isInvalid) {
-            return({
-                status : "Error",
-                message : "No puede haber campos vacios."
-            })
+            return setError(["No puede haber campos vacios"])
         }
         
-        
-    }
+        const result = validatePassword.safeParse(password)
 
+        if(!result.success) {
+            const errors = result.error.issues.map(error => error.message)
+
+            return setError(errors)
+        }
+
+        try {
+            const response = await updatePass(password);  
+
+            if (response instanceof Error) {
+                return setError([response.message]);
+            }
+
+            if (response?.status === "Error") {
+                return setError([response.message]);
+            }
+
+            if (response?.status === "Success") {
+                
+                setSuccess(response.message);
+
+                setPassword({
+                    currentPassword: "",
+                    newPassword: "",
+                    repeatPassword: ""
+                });
+
+                const timer = setTimeout(() => {
+                    router.back(); 
+                }, 2000);
+
+                return () => clearTimeout(timer);
+            }
+            
+        } catch (error: any) {
+            return setError([error.message || "Ocurrió un error inesperado"]);
+        }
+    }    
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -105,6 +147,41 @@ const ProfilePassword = () => {
                             </View> 
                             )
                         })
+                    }
+
+                    {   
+                        error.length !== 0 && (
+                            <View
+                            style={styles.error}
+                            >
+                                {
+                                    error.map((error, i) => {
+                                        return(
+                                            <Text
+                                            style={styles.textError}
+                                            key={i}
+                                            >
+                                                - {error}
+                                            </Text>
+                                        )
+                                    })
+                                }
+                            </View>
+                        )
+                    }
+
+                    {   
+                        success && (
+                            <View
+                            style={styles.success}
+                            >
+                                <Text
+                                style={styles.textSuccess}
+                                >
+                                    - {success}
+                                </Text>
+                            </View>
+                        )
                     }
 
                     <Pressable
@@ -208,6 +285,26 @@ const styles = StyleSheet.create({
         opacity: 0.9,
         transform: [{ scale: 0.99 }],
     },
-});
+
+    error : {
+        backgroundColor : COLORS.danger,
+        padding : 10,
+        borderRadius : 10
+    },
+    
+    textError : {
+        color : COLORS.dangerText
+    },
+
+    success : {
+        backgroundColor : COLORS.success,
+        padding : 10,
+        borderRadius : 10
+    },
+
+    textSuccess : {
+        color : COLORS.successText
+    }
+})
 
 export default ProfilePassword;
