@@ -12,6 +12,8 @@ export const READER_LABELS = {
     LOADING_PROGRESS: "Cargando tu progreso...",
     BOOK_NOT_FOUND: "No encontramos este libro. Volvé a cargarlo desde el Editor.",
     BACK: "Volver",
+    LOADING_BOOK: "Cargando libro...",
+    PUBLISHED_BOOK_NOT_FOUND: "Este libro ya no está disponible.",
 }
 
 // Tamaño de letra por nivel de titulo (h1 a h6) del epub

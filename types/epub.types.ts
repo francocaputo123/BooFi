@@ -82,6 +82,10 @@ export interface EpubParsedBook {
     /* Categorias elegidas por el autor; los EPUB importados no las traen */
     tags?: string[];
     chapters: EpubChapter[];
+    /* true si el libro viene de Firestore (publicado). Los de Editor/EPUB local no lo traen */
+    isPublished?: boolean;
+    /* false mientras los capitulos de un libro publicado no se bajaron (vienen con blocks vacios). Si no viene, se asume cargado */
+    isContentLoaded?: boolean;
 }
 
 /*

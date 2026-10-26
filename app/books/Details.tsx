@@ -10,6 +10,7 @@ import StatusMessage from '../../components/ui/StatusMessage';
 import bookStore from '../../store/bookStore';
 import { useReadingProgress } from '../../hooks/useReadingProgress';
 import { useAuthorName } from '../../hooks/useAuthorName';
+import { usePublishedBook } from '../../hooks/usePublishedBook';
 import { bookRouteParamsSchema } from '../../schema/reading.schema';
 import { getReadButtonLabel } from '../../utils/readingProgress';
 import { clampChapterIndex, formatChapterCounter } from '../../utils/chapterNavigation';
@@ -17,9 +18,9 @@ import { ACCESS_LABELS, DEFAULT_CHAPTER_ACCESS } from '../../constants/chapterAc
 
 
 /**
- * Pantalla de detalle de un EPUB. Solo se llega a ella tocando un libro
- * (por ahora, mediante el redirect que hace la pantalla de carga); no tiene
- * entrada propia ni botón de carga. 
+ * Pantalla de detalle de un libro. Se llega tocando un libro:
+ * - desde el Editor (EPUB recién cargado o historia escrita), que ya está en bookStore
+ * - desde Explorar (libro publicado), que se baja de Firestore con usePublishedBook
  */
 const EpubDetailScreen = () => {
   const router = useRouter();
@@ -30,8 +31,9 @@ const EpubDetailScreen = () => {
 
   const book = bookStore((state) => state.booksById[bookId]);
   const { progress, isReady } = useReadingProgress(bookId);
-  // El autor que se muestra es el usuario logueado, no el author del epub
-  const authorName = useAuthorName();
+  const { isLoadingBook, loadErrorMessage } = usePublishedBook(bookId);
+  // El autor que se muestra en un libro sin publicar es el usuario logueado, no el author del epub
+  const loggedUserName = useAuthorName();
 
   const handleReadPress = () => {
     router.push({ pathname: '/books/Reader', params: { id: bookId } });
@@ -41,15 +43,18 @@ const EpubDetailScreen = () => {
     router.push({ pathname: '/books/Publish', params: { id: bookId } });
   };
 
-  if (!isReady || !book) {
+  if (!isReady || isLoadingBook || !book) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <Stack.Screen options={{ headerShown: false }} />
-        {!isReady ? (
-          <StatusMessage isLoading message={READER_LABELS.LOADING_PROGRESS} />
+        {!isReady || isLoadingBook ? (
+          <StatusMessage
+            isLoading
+            message={isLoadingBook ? READER_LABELS.LOADING_BOOK : READER_LABELS.LOADING_PROGRESS}
+          />
         ) : (
           <StatusMessage
-            message={READER_LABELS.BOOK_NOT_FOUND}
+            message={loadErrorMessage || READER_LABELS.BOOK_NOT_FOUND}
             actionLabel={READER_LABELS.BACK}
             onAction={() => router.back()}
           />
@@ -60,6 +65,8 @@ const EpubDetailScreen = () => {
 
   const { title, chapters: bookChapters, synopsis, coverUri } = book;
   const categories = book.tags?.length ? book.tags : CATEGORIES_MOCK;
+  // En un libro publicado el autor es el que firmó al publicar; si no, el usuario logueado
+  const authorName = book.isPublished ? book.author : loggedUserName;
 
 
   return (
@@ -90,10 +97,13 @@ const EpubDetailScreen = () => {
           <Text style={styles.readButtonText}>{getReadButtonLabel(progress)}</Text>
         </Pressable>
 
-        {/* Publicar vive en su propia pantalla: ahi se edita la ficha tecnica antes de subir a Firebase */}
-        <Pressable style={styles.publishButton} onPress={handlePublishPress}>
-          <Text style={styles.publishButtonText}>Publicar</Text>
-        </Pressable>
+        {/* Publicar vive en su propia pantalla: ahi se edita la ficha tecnica antes de subir a Firebase.
+            Si el libro ya está publicado, el botón no tiene sentido y se oculta */}
+        {!book.isPublished && (
+          <Pressable style={styles.publishButton} onPress={handlePublishPress}>
+            <Text style={styles.publishButtonText}>Publicar</Text>
+          </Pressable>
+        )}
 
         {/* Solo si ya empezó: le dice dónde quedó sin tener que abrir el lector */}
         {progress && (
