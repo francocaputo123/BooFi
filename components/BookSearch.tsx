@@ -7,12 +7,14 @@ import FeedbackMessage from "@/components/ui/FeedbackMessage"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
 import { ALL_GENRES_LABEL, BOOK_GENRES, CATALOG_LABELS, GRID_COLUMNS, GRID_GAP } from "@/data/catalogData"
 import { useBookSearch } from "@/hooks/useBookSearch"
+import { useEffect } from "react"
 
 /**
  * Pantalla de Explorar: busqueda por titulo o autor, chips de genero y grilla de historias.
  * Los datos y la logica viven en useBookSearch; aca solo se dibuja segun el estado.
  */
-const BookSearch = () => {
+const BookSearch = ( props : any) => {
+    const { genreFromIndex = null } = props
     const { width: screenWidth } = useWindowDimensions()
     const router = useRouter()
     const {
@@ -30,6 +32,12 @@ const BookSearch = () => {
         clearFilters,
         hasActiveFilters,
     } = useBookSearch()
+
+    useEffect(()=>{ 
+        if (genreFromIndex) {
+            setSelectedGenre(genreFromIndex)
+        }
+    }, [genreFromIndex])
 
     const cardWidth = (screenWidth - SPACING.l * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS
 

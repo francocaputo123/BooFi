@@ -1,34 +1,44 @@
-import { Text, View, StyleSheet, Pressable } from 'react-native';
+import { Text, View, StyleSheet, Pressable} from 'react-native';
+import { useEffect } from 'react';
 import { useRouter } from 'expo-router'; 
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme";
-import GenreChips from "@/components/ui/GenreChips"
-import { ALL_GENRES_LABEL, BOOK_GENRES, CATALOG_LABELS, GRID_COLUMNS, GRID_GAP } from "@/data/catalogData"
-import { useBookSearch } from "@/hooks/useBookSearch"
+import GenreChipsIndex from "@/components/ui/GenreChipsIndex";
+import { BOOK_GENRES } from "@/data/catalogData";
+import { useBookSearch } from "@/hooks/useBookSearch";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import Card from '@/components/Card'
 
 export default function Index() {
   const router = useRouter(); 
-  const { selectedGenre, setSelectedGenre } = useBookSearch();
+  const { selectedGenre, setSelectedGenre } = useBookSearch();  
+  
+  useEffect(() => {
+    if (selectedGenre) {
+      router.push({
+        pathname: "/Explore",
+        params: { genreFromIndex: selectedGenre }
+      });
+    }
+  }, [selectedGenre]);
 
   return (
     <View style={styles.container}>
 
       {/* Tags de exploración por género */}
-      <View style={styles.exploreGenreContainer}>
+      <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>EXPLORAR POR GÉNERO</Text>
         <Pressable onPress={() => router.push('/Explore')}>
           <Text style={{color: COLORS.primary, fontSize: FONTSIZE.m}}>Ver todos</Text>
         </Pressable>
       </View>
 
-      <View>
-          <GenreChips
+      <View style={styles.chipsContainer}>
+          <GenreChipsIndex
               genres={BOOK_GENRES}
               selected={selectedGenre}
               onSelect={setSelectedGenre}
-              allLabel={ALL_GENRES_LABEL}
           />
       </View>
 
@@ -82,14 +92,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  exploreGenreContainer: {
+  sectionContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: SPACING.m,
   },
-  chip: {
-    backgroundColor: COLORS.accent,
+  chipsContainer: {
+    marginHorizontal: SPACING.m, 
+    marginBottom: SPACING.xxl,
+    marginTop: SPACING.s,
   },
   sectionTitle: {
     color: COLORS.textSecondary,
@@ -108,7 +120,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     padding: SPACING.m,
-    marginBottom: SPACING.s,
+    marginBottom: SPACING.l,
     marginHorizontal: SPACING.m, 
   },
   btnPressed: {
