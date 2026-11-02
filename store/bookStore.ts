@@ -12,6 +12,24 @@ const bookStore = create<BookState>()((set) => ({
                 [book.id] : book
             }
         }))
+    },
+
+    setChapterBlocks : (bookId, chapterIndex, blocks) => {
+        set((state) => {
+            const book = state.booksById[bookId]
+            if (!book) return state
+
+            const chapters = book.chapters.map((chapter, index) =>
+                index === chapterIndex ? { ...chapter, blocks, isLoaded : true } : chapter
+            )
+
+            return {
+                booksById : {
+                    ...state.booksById,
+                    [bookId] : { ...book, chapters }
+                }
+            }
+        })
     }
 }))
 
