@@ -22,6 +22,7 @@ export const publishedBookToEpubBook = (published: PublishedBook): EpubParsedBoo
             textPreview: "",
             blocks: [],
             access: chapter.access,
+            isLoaded: false,
         })),
     }
 }

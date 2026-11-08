@@ -30,7 +30,7 @@ const EpubDetailScreen = () => {
   const bookId = parsedParams.success ? parsedParams.data.id : '';
 
   const book = bookStore((state) => state.booksById[bookId]);
-  const { progress, isReady } = useReadingProgress(bookId);
+  const { progress, isReady } = useReadingProgress(bookId, book?.isPublished === true);
   const { isLoadingBook, loadErrorMessage } = usePublishedBook(bookId);
   // El autor que se muestra en un libro sin publicar es el usuario logueado, no el author del epub
   const loggedUserName = useAuthorName();

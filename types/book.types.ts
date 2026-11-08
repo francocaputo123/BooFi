@@ -12,6 +12,8 @@ export interface Book {
 export interface BookState {
     booksById: Record<string, EpubParsedBook>
     saveBook: (book: EpubParsedBook) => void
+    /* Guarda el texto de un capitulo ya bajado de un libro publicado y lo marca como cargado */
+    setChapterBlocks: (bookId: string, chapterIndex: number, blocks: EpubBlock[]) => void
 }
 
 /*
