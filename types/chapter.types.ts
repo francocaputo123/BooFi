@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase/firestore"
 
 /** Quién puede leer un capítulo: todos, suscriptores o quien lo compre */
-export type ChapterAccess = "free" | "premium" | "paid"
+export type ChapterAccess = "free" | "paid"
 
 export interface Chapter {
   id: string

@@ -45,13 +45,6 @@ const ACCESS_OPTIONS = [
         icon: "book-outline" as const,
     },
     {
-        key: "premium" as const,
-        title: PUBLISH_LABELS.ACCESS_PREMIUM,
-        description: PUBLISH_LABELS.ACCESS_PREMIUM_DESC,
-        // Ionicons no tiene "crown-outline"; diamond-outline da la idea de premium/exclusivo
-        icon: "diamond-outline" as const,
-    },
-    {
         key: "paid" as const,
         title: PUBLISH_LABELS.ACCESS_PAID,
         description: PUBLISH_LABELS.ACCESS_PAID_DESC,
