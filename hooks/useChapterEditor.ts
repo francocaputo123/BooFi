@@ -8,7 +8,7 @@ import { AUTOSAVE_DELAY_MS } from "@/constants/chapterEditor"
  * Carga un capítulo y lo guarda solo: con una pausa al escribir y al salir de la pantalla
  * @param string draftId : id de la historia
  * @param string chapterId : id del capítulo
- * @returns título, contenido, sus setters y los estados de carga, error y guardado
+ * @returns título, contenido, sus setters, los estados de carga, error y guardado, y saveNow
  */
 export const useChapterEditor = (draftId: string, chapterId: string) => {
   const uid = authStore((state) => state.public_id)
@@ -28,6 +28,27 @@ export const useChapterEditor = (draftId: string, chapterId: string) => {
 
   const hasUnsavedChanges = (currentTitle: string, currentContent: string) =>
     currentTitle !== lastSaved.current.title || currentContent !== lastSaved.current.content
+
+/** Guarda título y contenido en Firestore y actualiza el estado del guardado. Devuelve true si salió bien */
+const saveChanges = async (nextTitle: string, nextContent: string): Promise<boolean> => {
+  try {
+    setSaveStatus("saving")
+    await updateChapter(uid, draftId, chapterId, { title: nextTitle, content: nextContent })
+    lastSaved.current = { title: nextTitle, content: nextContent }
+    setSaveStatus("saved")
+    return true
+  } catch {
+    setSaveStatus("error")
+    return false
+  }
+}
+
+/** Guarda lo pendiente ya mismo. Devuelve true si no había nada que guardar o si se guardó bien */
+const saveNow = async (): Promise<boolean> => {
+  const { title: pendingTitle, content: pendingContent } = latest.current
+  if (!hasUnsavedChanges(pendingTitle, pendingContent)) return true
+  return saveChanges(pendingTitle, pendingContent)
+}
 
   useEffect(() => {
     const loadChapter = async () => {
@@ -50,14 +71,10 @@ export const useChapterEditor = (draftId: string, chapterId: string) => {
     if (isLoading || errorMessage || !hasUnsavedChanges(title, content)) return
 
     setSaveStatus("pending")
-    const timer = setTimeout(async () => {
-      try {
-        setSaveStatus("saving")
-        await updateChapter(uid, draftId, chapterId, { title, content })
-        lastSaved.current = { title, content }
-        setSaveStatus("saved")
-      } catch {
-        setSaveStatus("error")
+    const timer = setTimeout(() => {
+      // saveNow pudo haber guardado antes de que venza la pausa
+      if (hasUnsavedChanges(title, content)) {
+        saveChanges(title, content)
       }
     }, AUTOSAVE_DELAY_MS)
 
@@ -75,5 +92,5 @@ export const useChapterEditor = (draftId: string, chapterId: string) => {
     }
   }, [])
 
-  return { title, setTitle, content, setContent, isLoading, errorMessage, saveStatus }
+  return { title, setTitle, content, setContent, isLoading, errorMessage, saveStatus, saveNow }
 }
