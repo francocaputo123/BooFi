@@ -1,7 +1,7 @@
 import { Draft } from "@/types/draft.types"
 import { Chapter } from "@/types/chapter.types"
 import { EpubBlock, EpubParsedBook } from "@/types/epub.types"
-
+import { getDraftTitle } from "@/utils/getDraftTitle"
 /**
  * Convierte el texto de un capitulo en bloques: un parrafo por cada linea no vacia.
  * TODO: cuando se haga RF6.3, convertir las marcas ** y _ en spans con bold/italic
@@ -21,7 +21,7 @@ const textToBlocks = (content: string): EpubBlock[] => {
 export const draftToBook = (draft: Draft, chapters: Chapter[], authorName: string): EpubParsedBook => {
   return {
     id: draft.id,
-    title: draft.title,
+    title: getDraftTitle(draft),
     author: authorName,
     synopsis: draft.synopsis ?? "",
     coverUri: null,

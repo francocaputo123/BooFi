@@ -8,5 +8,5 @@ export const STATUS_LABELS: Record<DraftStatus, string> = {
 /** Lista de estados para armar los chips de configuración sin repetirlos a mano */
 export const STATUS_OPTIONS = Object.keys(STATUS_LABELS) as DraftStatus[]
 
-/** Título con el que se crea una historia nueva hasta que el autor lo cambia */
-export const DEFAULT_DRAFT_TITLE = "Sin título"
+/** Texto que se muestra cuando una historia no tiene título; en la base el título queda vacío */
+export const UNTITLED_DRAFT_LABEL = "Sin título"

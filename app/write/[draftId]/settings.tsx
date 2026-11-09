@@ -7,6 +7,7 @@ import { DraftStatus } from "@/types/draft.types"
 import { AVAILABLE_TAGS, BookTag } from "@/data/publishData"
 import { STATUS_LABELS, STATUS_OPTIONS } from "@/constants/draftOptions"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
+import { UNTITLED_DRAFT_LABEL } from "@/constants/draftOptions"
 import ChipOption from "@/components/ChipOption"
 
 /** Descarta valores que ya no existan en AVAILABLE_TAGS */
@@ -51,10 +52,6 @@ const DraftSettingsScreen = () => {
   }
 
   const handleSave = async () => {
-    if (title.trim() === "") {
-      setSaveError("El título no puede estar vacío")
-      return
-    }
     setIsSaving(true)
     setSaveError(null)
     try {
@@ -86,7 +83,7 @@ const DraftSettingsScreen = () => {
         style={styles.input}
         value={title}
         onChangeText={setTitle}
-        placeholder="Título de la historia"
+        placeholder={UNTITLED_DRAFT_LABEL}
         placeholderTextColor={COLORS.textSecondary}
       />
 
