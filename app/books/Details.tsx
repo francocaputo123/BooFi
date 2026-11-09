@@ -14,7 +14,7 @@ import { usePublishedBook } from '../../hooks/usePublishedBook';
 import { bookRouteParamsSchema } from '../../schema/reading.schema';
 import { getReadButtonLabel } from '../../utils/readingProgress';
 import { clampChapterIndex, formatChapterCounter } from '../../utils/chapterNavigation';
-import { ACCESS_LABELS, DEFAULT_CHAPTER_ACCESS } from '../../constants/chapterAccess';
+import { ACCESS_LABELS } from '../../constants/chapterAccess';
 
 
 /**
@@ -116,9 +116,11 @@ const EpubDetailScreen = () => {
         {bookChapters.map((chapter, index) => (
           <View key={chapter.id} style={styles.chapterRow}>
             <Text style={[styles.text, styles.chapterTitle]}>{index + 1}. {chapter.title}</Text>
-            <Text style={styles.accessTag}>
-              {ACCESS_LABELS[chapter.access ?? DEFAULT_CHAPTER_ACCESS]}
-            </Text>
+            {chapter.access && (
+              <Text style={styles.accessTag}>
+                {ACCESS_LABELS[chapter.access]}
+              </Text>
+            )}
           </View>
         ))}
       </ScrollView>
