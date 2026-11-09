@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react"
 import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet, Alert } from "react-native"
-import { useFocusEffect, useRouter } from "expo-router"
+import { useFocusEffect, useRouter, Href } from "expo-router"
 import authStore from "@/store/authStore"
-import { createDraft, listDrafts, deleteDraft } from "@/services/draftService"
+import { listDrafts, deleteDraft } from "@/services/draftService"
 import { Draft } from "@/types/draft.types"
-import { DEFAULT_DRAFT_TITLE } from "@/constants/draftOptions"
+import { getDraftTitle } from "@/utils/getDraftTitle"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
 import DraftCard from "@/components/DraftCard"
 
@@ -16,8 +16,7 @@ const DraftList = () => {
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  // Evita que un doble toque cree dos historias mientras Firestore responde
-  const [isCreating, setIsCreating] = useState(false)
+  const [setIsCreating] = useState(false)
 
   const openDraft = (draftId: string) => {
     router.push({ pathname: "/write/[draftId]", params: { draftId } })
@@ -42,21 +41,8 @@ const DraftList = () => {
     }, [uid])
   )
 
-  const handleCreateDraft = async () => {
-    try {
-      setIsCreating(true)
-      setErrorMessage(null)
-      const draftId = await createDraft(uid, DEFAULT_DRAFT_TITLE)
-      openDraft(draftId)
-    } catch (error) {
-      setErrorMessage((error as Error).message)
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   const handleDeleteDraft = (draft: Draft) => {
-    Alert.alert("Borrar historia", `¿Borrar "${draft.title}" y todos sus capítulos?`, [
+    Alert.alert("Borrar historia", `¿Borrar "${getDraftTitle(draft)}" y todos sus capítulos?`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Borrar",
@@ -81,13 +67,9 @@ const DraftList = () => {
 
   return (
     <View style={styles.container}>
-      <Pressable
-        style={[styles.createButton, isCreating && styles.createButtonDisabled]}
-        onPress={handleCreateDraft}
-        disabled={isCreating}
-      >
-        <Text style={styles.createButtonText}>{isCreating ? "Creando..." : "Nueva historia"}</Text>
-      </Pressable>
+      <Pressable style={styles.createButton} onPress={() => router.push("/write/new" as Href)}>
+      <Text style={styles.createButtonText}>Nueva historia</Text>
+    </Pressable>
 
       {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
 
@@ -126,9 +108,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: SPACING.m,
-  },
-  createButtonDisabled: {
-    opacity: 0.6,
   },
   createButtonText: {
     color: "#fff",
