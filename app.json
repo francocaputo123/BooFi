@@ -2,14 +2,14 @@
   "expo": {
     "name": "BooFi",
     "slug": "BooFi",
-    "scheme" : "BooFi",
+    "scheme": "BooFi",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#fdfaf6"
     },
     "ios": {
       "supportsTablet": true
@@ -20,16 +20,16 @@
     },
     "plugins": [
       "expo-router",
-        [
-          "expo-location",
-          {
-            "locationWhenInUsePermission": "BooFi usa tu ubicación para mostrarte en el mapa y encontrar bibliotecas cerca."
-          }
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "BooFi usa tu ubicación para mostrarte en el mapa y encontrar bibliotecas cerca."
+        }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission" : "¿Permitís el acceso de tú cámara a BooFi?"
+          "cameraPermission": "¿Permitís el acceso de tú cámara a BooFi?"
         }
       ]
     ]
