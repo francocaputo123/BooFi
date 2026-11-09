@@ -12,7 +12,10 @@ import { Ionicons } from "@expo/vector-icons";
 import ChapterListModal from "@/components/ChapterListModal";
 import ChapterNavigationBar from "@/components/ChapterNavigationBar";
 import EpubBlockView from "@/components/EpubBlockView";
+import StatusMessage from "@/components/ui/StatusMessage";
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme";
+import { READER_LABELS } from "@/data/readingData";
+import { usePublishedChapter } from "@/hooks/usePublishedChapter";
 import { clampChapterIndex, formatChapterCounter, getChapterNavigation } from "@/utils/chapterNavigation";
 import { ChapterReaderProps, ReadingPosition } from "@/types/reading.types";
 
@@ -99,6 +102,9 @@ const ChapterReader = ({ book, initialProgress, onSavePosition, onBack }: Chapte
     const navigation = getChapterNavigation(chapterIndex, totalChapters)
     const chapter = book.chapters[chapterIndex]
 
+    // En un libro publicado el texto del capítulo se baja al abrirlo; en los locales ya está cargado
+    const { isLoadingChapter, chapterErrorMessage, retryLoad } = usePublishedChapter(book, chapterIndex)
+
     // El capítulo ya trae su propio título como primer bloque, por eso el encabezado no lo repite
 
     return (
@@ -113,22 +119,34 @@ const ChapterReader = ({ book, initialProgress, onSavePosition, onBack }: Chapte
                 </View>
             </View>
 
-            {/* "key" recrea el ScrollView en cada capítulo, así el nuevo arranca siempre arriba */}
-            <ScrollView
-                key={chapterIndex}
-                ref={scrollRef}
-                contentContainerStyle={styles.content}
-                scrollEventThrottle={200}
-                onScroll={trackPosition}
-                onScrollBeginDrag={handleScrollBeginDrag}
-                onScrollEndDrag={handleScrollEnd}
-                onMomentumScrollEnd={handleScrollEnd}
-                onContentSizeChange={handleContentSizeChange}
-            >
-                {chapter.blocks.map((block, index) => (
-                    <EpubBlockView key={index} block={block} />
-                ))}
-            </ScrollView>
+            {/* El ScrollView se monta recién con el texto listo: así el scroll guardado se restaura sobre el contenido real.
+                Mientras tanto (o si falla) el encabezado y los controles siguen disponibles para cambiar de capítulo.
+                "key" recrea el ScrollView en cada capítulo, así el nuevo arranca siempre arriba */}
+            {isLoadingChapter ? (
+                <StatusMessage isLoading message={READER_LABELS.LOADING_CHAPTER} />
+            ) : chapterErrorMessage ? (
+                <StatusMessage
+                    message={chapterErrorMessage}
+                    actionLabel={READER_LABELS.RETRY}
+                    onAction={retryLoad}
+                />
+            ) : (
+                <ScrollView
+                    key={chapterIndex}
+                    ref={scrollRef}
+                    contentContainerStyle={styles.content}
+                    scrollEventThrottle={200}
+                    onScroll={trackPosition}
+                    onScrollBeginDrag={handleScrollBeginDrag}
+                    onScrollEndDrag={handleScrollEnd}
+                    onMomentumScrollEnd={handleScrollEnd}
+                    onContentSizeChange={handleContentSizeChange}
+                >
+                    {chapter.blocks.map((block, index) => (
+                        <EpubBlockView key={index} block={block} />
+                    ))}
+                </ScrollView>
+            )}
 
             <ChapterNavigationBar
                 navigation={navigation}

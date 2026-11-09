@@ -22,7 +22,8 @@ const ReaderScreen = () => {
   const bookId = parsedParams.success ? parsedParams.data.id : '';
 
   const book = bookStore((state) => state.booksById[bookId]);
-  const { progress, isReady, savePosition } = useReadingProgress(bookId);
+  // Solo los libros publicados sincronizan el progreso con la nube (RF5.1 CA3 / RF5.4)
+  const { progress, isReady, savePosition } = useReadingProgress(bookId, book?.isPublished === true);
 
   const renderContent = () => {
     if (!isReady) {

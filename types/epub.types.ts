@@ -15,6 +15,8 @@ export interface EpubChapter {
     blocks: EpubBlock[];
     /* Tipo de acceso elegido al publicar; si no viene se asume gratis (DEFAULT_CHAPTER_ACCESS) */
     access?: ChapterAccess;
+    /* Solo libros publicados: false hasta que se baja el texto del capitulo desde Cloud Storage. Si no viene, se asume cargado */
+    isLoaded?: boolean;
 }
 
 export type EpubTextAlign = "left" | "center" | "right" | "justify";
