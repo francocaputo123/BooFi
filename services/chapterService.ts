@@ -83,7 +83,7 @@ export const getChapter = async (
 }
 
 /**
- * Guarda el título y el contenido de un capítulo.
+ * Guarda el título y el contenido de un capítulo y marca la historia como tocada.
  * @param string uid : id del usuario logueado
  * @param string draftId : id de la historia
  * @param string chapterId : id del capítulo
@@ -94,11 +94,16 @@ export const updateChapter = async (
   changes: Pick<Chapter, "title" | "content">
 ) => {
   try {
-    await updateDoc(chapterRef(uid, draftId, chapterId), {
+    const batch = writeBatch(db)
+    batch.update(chapterRef(uid, draftId, chapterId), {
       title: changes.title,
       content: changes.content,
       updatedAt: serverTimestamp(),
     })
+    // La historia también se actualiza para que "Seguir escribiendo" y la lista ordenen por actividad real.
+    // NOTE: la ruta se escribe acá porque draftService ya importa este archivo y no puede importar de vuelta
+    batch.update(doc(db, "users", uid, "drafts", draftId), { updatedAt: serverTimestamp() })
+    await batch.commit()
   } catch (error) {
     throw new Error(handleFirebaseError(error))
   }

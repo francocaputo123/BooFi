@@ -14,15 +14,17 @@ const draftsRef = (uid: string) => collection(db, "users", uid, "drafts")
 const draftRef = (uid: string, draftId: string) => doc(draftsRef(uid), draftId)
 
 /**
- * Crea una historia vacía en la cuenta del usuario.
+ * Crea una historia en la cuenta del usuario.
  * @param string uid : id del usuario logueado
- * @param string title : título inicial de la historia
+ * @param string title : título inicial, puede ir vacío
+ * @param string synopsis : descripción inicial, puede ir vacía
  * @returns string : id de la historia creada
  */
-export const createDraft = async (uid: string, title: string): Promise<string> => {
+export const createDraft = async (uid: string, title: string, synopsis = ""): Promise<string> => {
   try {
     const docRef = await addDoc(draftsRef(uid), {
       title,
+      synopsis,
       status: "in_progress",
       updatedAt: serverTimestamp(),
     })

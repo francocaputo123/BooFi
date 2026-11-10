@@ -7,6 +7,7 @@ interface ChapterCardProps {
   chapter: Chapter
   isFirst: boolean
   isLast: boolean
+  isCurrent?: boolean
   onPress: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -14,8 +15,8 @@ interface ChapterCardProps {
 }
 
 /** Fila de un capítulo con acceso al editor y botones para reordenar o borrar */
-const ChapterCard = ({ chapter, isFirst, isLast, onPress, onMoveUp, onMoveDown, onDelete }: ChapterCardProps) => (
-  <View style={styles.card}>
+const ChapterCard = ({ chapter, isFirst, isLast, isCurrent, onPress, onMoveUp, onMoveDown, onDelete }: ChapterCardProps) => (
+  <View style={[styles.card, isCurrent && styles.cardCurrent]}>
     <Pressable style={styles.titleArea} onPress={onPress}>
       <Text style={styles.title}>{chapter.title}</Text>
     </Pressable>
@@ -39,6 +40,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface, borderColor: COLORS.border, borderWidth: 1,
     borderRadius: 8, padding: SPACING.m, marginTop: SPACING.s,
   },
+  cardCurrent: { borderColor: COLORS.primary },
   titleArea: { flex: 1 },
   title: { fontSize: FONTSIZE.m, color: COLORS.text },
   actions: { flexDirection: "row", gap: SPACING.m },

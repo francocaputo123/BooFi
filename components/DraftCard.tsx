@@ -3,6 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons"
 import { Draft } from "@/types/draft.types"
 import { STATUS_LABELS } from "@/constants/draftOptions"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
+import { getDraftTitle } from "@/utils/getDraftTitle"
 
 interface DraftCardProps {
   draft: Draft
@@ -14,7 +15,7 @@ interface DraftCardProps {
 const DraftCard = ({ draft, onPress, onDelete }: DraftCardProps) => (
   <Pressable style={styles.card} onPress={onPress}>
     <View style={styles.header}>
-      <Text style={styles.title}>{draft.title}</Text>
+      <Text style={styles.title}>{getDraftTitle(draft)}</Text>
       <Pressable onPress={onDelete}>
         <Ionicons name="trash-outline" size={22} color={COLORS.dangerText} />
       </Pressable>

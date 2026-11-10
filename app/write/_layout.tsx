@@ -13,7 +13,9 @@ const WriteLayout = () => (
       headerBackTitle: "Volver",
     }}
   >
-    <Stack.Screen name="[draftId]/index" options={{ title: "Capítulos" }} />
+    <Stack.Screen name="index" options={{ title: "Mis historias" }} />
+    <Stack.Screen name="new" options={{ title: "Nueva historia" }} />
+    <Stack.Screen name="[draftId]/index" options={{ headerShown: false }} />
     <Stack.Screen name="[draftId]/[chapterId]" options={{ title: "Editor" }} />
     <Stack.Screen name="[draftId]/settings" options={{ title: "Configuración" }} />
   </Stack>

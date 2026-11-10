@@ -3,7 +3,6 @@ import { ChapterAccess } from "@/types/chapter.types"
 /** Nombre visible de cada tipo de acceso */
 export const ACCESS_LABELS: Record<ChapterAccess, string> = {
   free: "Gratis",
-  premium: "Solo Premium",
   paid: "Pago Individual",
 }
 
