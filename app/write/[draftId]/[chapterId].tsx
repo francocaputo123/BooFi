@@ -9,6 +9,7 @@ import ChapterPicker from "@/components/ChapterPicker"
 import { SAVE_STATUS_LABELS } from "@/constants/chapterEditor"
 import { Chapter } from "@/types/chapter.types"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
+import RichTextEditor from "@/components/RichTextEditor"
 
 const ChapterEditorScreen = () => {
   const { draftId, chapterId } = useLocalSearchParams() as { draftId: string; chapterId: string }
@@ -169,15 +170,10 @@ const ChapterEditorScreen = () => {
         placeholder="Título del capítulo"
         placeholderTextColor={COLORS.textSecondary}
       />
-      <TextInput
-        style={styles.contentInput}
-        value={content}
-        onChangeText={setContent}
-        placeholder="Empezá a escribir..."
-        placeholderTextColor={COLORS.textSecondary}
-        multiline
-        textAlignVertical="top"
-      />
+      <View style={styles.editor}>
+        {/* key: cada capítulo arma su propio editor, el contenido inicial se lee una sola vez */}
+        <RichTextEditor key={chapterId} initialContent={content} onChange={setContent} />
+      </View>
 
       <View style={styles.footer}>
         <Text style={saveStatus === "error" ? styles.statusError : styles.status}>
@@ -212,7 +208,7 @@ const styles = StyleSheet.create({
     fontSize: FONTSIZE.xl, fontWeight: "bold", color: COLORS.text,
     borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingVertical: SPACING.s,
   },
-  contentInput: { flex: 1, fontSize: FONTSIZE.m, color: COLORS.text, marginTop: SPACING.m },
+  editor: { flex: 1, marginTop: SPACING.m },
   footer: { flexDirection: "row", justifyContent: "space-between", paddingTop: SPACING.s },
   status: { color: COLORS.textSecondary, fontSize: FONTSIZE.xs },
   statusError: { color: COLORS.dangerText, fontSize: FONTSIZE.xs },
