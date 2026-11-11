@@ -1,4 +1,5 @@
 import { Text, View, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from "expo-router"
 
 //components
 import BookSearch from "@/components/BookSearch"
@@ -7,9 +8,11 @@ import BookSearch from "@/components/BookSearch"
 import { COLORS } from "@/constants/theme"
 
 export default function ExploreScreen() {
+  const { genreFromIndex } = useLocalSearchParams()
+  
   return (
     <View style={styles.container}>
-      <BookSearch />
+      <BookSearch genreFromIndex={genreFromIndex ? genreFromIndex : null}/>
     </View>
   );
 }
