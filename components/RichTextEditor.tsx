@@ -113,6 +113,7 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
           <ToolButton icon="format-header-2" isActive={editorState.headingLevel === 2} onPress={() => editor.toggleHeading(2)} />
           <ToolButton icon="format-quote-close" isActive={editorState.isBlockquoteActive} onPress={() => editor.toggleBlockquote()} />
           <ToolButton icon="format-list-bulleted" isActive={editorState.isBulletListActive} onPress={() => editor.toggleBulletList()} />
+          <ToolButton icon="format-list-numbered" isActive={editorState.isOrderedListActive} onPress={() => editor.toggleOrderedList()} />
           <ToolButton icon="undo" isDisabled={!editorState.canUndo} onPress={() => editor.undo()} />
           <ToolButton icon="redo" isDisabled={!editorState.canRedo} onPress={() => editor.redo()} />
         </ScrollView>

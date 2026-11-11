@@ -22,6 +22,7 @@ const MARK_TO_FORMAT: Record<string, SpanFormat> = {
 
 const MIN_HEADING_LEVEL = 1
 const MAX_HEADING_LEVEL = 6
+const BULLET_MARKER = "• "
 
 /**
  * Convierte los nodos de texto de un párrafo en tramos con formato.
@@ -54,6 +55,31 @@ const trimSpans = (spans: EpubTextSpan[]): EpubTextSpan[] => {
 }
 
 /**
+ * Convierte un ítem de lista en bloques del lector.
+ * NOTE: el lector no dibuja viñetas ni números por su cuenta, el símbolo viaja dentro del texto
+ * (igual que hace epubHtmlParser con los EPUB importados)
+ * @param RichTextNode item : ítem de la lista
+ * @param number depth : profundidad de la lista (1 = lista principal)
+ * @param string marker : "• " o "1. ", se escribe al principio del primer párrafo con texto
+ * @param boolean isInQuote : true si la lista está dentro de una cita
+ * @returns EpubBlock[]
+ */
+const listItemToBlocks = (item: RichTextNode, depth: number, marker: string, isInQuote: boolean): EpubBlock[] => {
+  let isMarkerPending = true
+
+  return (item.content ?? []).flatMap((child): EpubBlock[] => {
+    if (child.type !== "paragraph") return nodeToBlocks(child, depth, isInQuote)
+
+    const spans = trimSpans(nodesToSpans(child.content))
+    if (spans.length === 0) return []
+
+    const itemSpans = isMarkerPending ? [{ text: marker }, ...spans] : spans
+    isMarkerPending = false
+    return [{ type: "listItem", spans: itemSpans, level: depth }]
+  })
+}
+
+/**
  * Recorre un nodo y devuelve los bloques del lector que le corresponden.
  * Las estructuras anidadas se aplanan: una lista dentro de una cita queda como lista.
  * @param RichTextNode node : nodo a convertir
@@ -74,7 +100,6 @@ const nodeToBlocks = (node: RichTextNode, listDepth: number, isInQuote: boolean)
     case "paragraph": {
       const spans = trimSpans(nodesToSpans(children))
       if (spans.length === 0) return []
-      if (listDepth > 0) return [{ type: "listItem", spans, level: listDepth }]
       return [{ type: isInQuote ? "quote" : "paragraph", spans }]
     }
 
@@ -82,8 +107,12 @@ const nodeToBlocks = (node: RichTextNode, listDepth: number, isInQuote: boolean)
       return children.flatMap((child) => nodeToBlocks(child, listDepth, true))
 
     case "bulletList":
-    case "orderedList":
-      return children.flatMap((child) => nodeToBlocks(child, listDepth + 1, isInQuote))
+    case "orderedList": {
+      const isOrdered = node.type === "orderedList"
+      return children.flatMap((item, index) =>
+        listItemToBlocks(item, listDepth + 1, isOrdered ? `${index + 1}. ` : BULLET_MARKER, isInQuote)
+      )
+    }
 
     case "horizontalRule":
       return [{ type: "divider", spans: [] }]
