@@ -1,12 +1,12 @@
 import { collection, DocumentData, getDocs, limit, orderBy, query, QueryDocumentSnapshot } from "firebase/firestore"
 import { db } from "@/config/firebaseConfig"
 import { CatalogBook } from "@/types/catalog.types"
-import { BOOKS_COLLECTION, CATALOG_FETCH_LIMIT, CATALOG_LABELS, DEFAULT_BOOK_STATUS } from "@/data/catalogData"
+import { BOOKS_COLLECTION, CATALOG_FETCH_LIMIT, CATALOG_LABELS } from "@/data/catalogData"
 
 /*
  * Convierte un documento de Firestore en un CatalogBook.
  * Se valida cada campo porque Firestore no garantiza la forma de los datos
- * (por ejemplo, un libro cargado a mano puede no traer "tags" o "status").
+ * (por ejemplo, un libro cargado a mano puede no traer "tags" o "price").
  */
 const mapBookDocument = (snapshot: QueryDocumentSnapshot<DocumentData>): CatalogBook => {
     const data = snapshot.data()
@@ -17,7 +17,10 @@ const mapBookDocument = (snapshot: QueryDocumentSnapshot<DocumentData>): Catalog
         authorName: typeof data.authorName === "string" ? data.authorName : "",
         coverUrl: typeof data.coverUrl === "string" ? data.coverUrl : null,
         tags: Array.isArray(data.tags) ? data.tags.filter((tag: unknown): tag is string => typeof tag === "string") : [],
-        status: data.status === "completed" ? "completed" : DEFAULT_BOOK_STATUS,
+        // Los libros viejos no traen "visibility": se tratan como gratis
+        visibility: data.visibility === "paid" ? "paid" : "public",
+        // Solo se acepta un entero positivo; cualquier otra cosa se trata como "sin precio"
+        price: Number.isInteger(data.price) && data.price > 0 ? data.price : null,
     }
 }
 

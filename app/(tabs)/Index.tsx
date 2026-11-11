@@ -1,18 +1,21 @@
-import { Text, View, StyleSheet, Pressable} from 'react-native';
+import { Text, View, StyleSheet, Pressable, ScrollView, FlatList, ActivityIndicator } from 'react-native';
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router'; 
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme";
 import GenreChipsIndex from "@/components/ui/GenreChipsIndex";
-import { BOOK_GENRES } from "@/data/catalogData";
+import { BOOK_GENRES, CATALOG_LABELS, HOME_BOOKS_LIMIT, HOME_CARD_WIDTH } from "@/data/catalogData";
 import { useBookSearch } from "@/hooks/useBookSearch";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Card from '@/components/Card'
+import BookCard from '@/components/BookCard'
 
 export default function Index() {
   const router = useRouter(); 
-  const { selectedGenre, setSelectedGenre } = useBookSearch();  
+  const { selectedGenre, setSelectedGenre, books, isLoading, errorMessage } = useBookSearch();
+  // El catalogo ya viene ordenado del mas nuevo al mas viejo: alcanza con cortar los primeros
+  const latestBooks = books.slice(0, HOME_BOOKS_LIMIT);
   
   useEffect(() => {
     if (selectedGenre) {
@@ -24,7 +27,39 @@ export default function Index() {
   }, [selectedGenre]);
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+
+      {/* Últimas publicaciones: la tarjeta es la misma de Explorar, así el cartel de "Pago" sale solo */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>{CATALOG_LABELS.HOME_SECTION_LATEST}</Text>
+        <Pressable onPress={() => router.push('/Explore')}>
+          <Text style={{color: COLORS.primary, fontSize: FONTSIZE.m}}>Ver todos</Text>
+        </Pressable>
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator color={COLORS.primary} style={styles.booksFeedback} />
+      ) : latestBooks.length === 0 ? (
+        // Si falla la carga y no hay libros se avisa el error; si simplemente no hay nada publicado, el mensaje vacío
+        <Text style={[styles.feedbackText, styles.booksFeedback]}>
+          {errorMessage || CATALOG_LABELS.HOME_EMPTY}
+        </Text>
+      ) : (
+        <FlatList
+          data={latestBooks}
+          keyExtractor={(book) => book.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.booksList}
+          renderItem={({ item }) => (
+            <BookCard
+              book={item}
+              width={HOME_CARD_WIDTH}
+              onPress={() => router.push({ pathname: "/books/Details", params: { id: item.id } })}
+            />
+          )}
+        />
+      )}
 
       {/* Tags de exploración por género */}
       <View style={styles.sectionContainer}>
@@ -84,7 +119,7 @@ export default function Index() {
         </View>
       </Pressable>
 
-    </View>
+    </ScrollView>
   );
 }
 
@@ -96,6 +131,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: SPACING.m,
+  },
+  booksList: {
+    paddingHorizontal: SPACING.m,
+    gap: SPACING.m,
+    marginTop: SPACING.s,
+  },
+  booksFeedback: {
+    marginVertical: SPACING.l,
+  },
+  feedbackText: {
+    color: COLORS.textSecondary,
+    fontSize: FONTSIZE.m,
+    textAlign: "center",
     paddingHorizontal: SPACING.m,
   },
   chipsContainer: {

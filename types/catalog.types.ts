@@ -1,5 +1,4 @@
-/* "ongoing" = en progreso, "completed" = completa. Los textos para mostrar estan en BOOK_STATUS_LABELS */
-export type BookStatus = "ongoing" | "completed"
+import { BookVisibility } from "@/types/book.types"
 
 /*
  * Lo minimo de un libro que necesita el listado de Explorar.
@@ -11,7 +10,10 @@ export interface CatalogBook {
     authorName: string
     coverUrl: string | null
     tags: string[]
-    status: BookStatus
+    /* "paid" = libro de pago. Si no esta en Firestore se asume "public" (gratis) */
+    visibility: BookVisibility
+    /* Precio en pesos argentinos (entero). null si el libro es gratis o no trae precio */
+    price: number | null
 }
 
 /* Lo que elige el usuario en Explorar. genre null = "Todos" */

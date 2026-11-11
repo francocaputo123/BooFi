@@ -16,6 +16,7 @@ import {
     CHAPTER_IMAGE_ATTEMPTS,
     JPEG_CONTENT_TYPE,
     MAX_CHAPTER_IMAGE_BYTES,
+    PRICE_CURRENCY,
     UPLOAD_BATCH_SIZE,
 } from "@/data/publishData"
 import { buildPublishedBookId } from "@/utils/buildBookId"
@@ -163,7 +164,7 @@ const deleteUploadedFiles = async (paths: string[]) => {
 @returns PublishBookResult : "published" o "duplicate" (con el id del libro)
  */
 export const publishBook = async (params: PublishBookParams): Promise<PublishBookResult> => {
-    const { authorId, authorName, book, synopsis, tags, coverJpegBase64, visibility } = params
+    const { authorId, authorName, book, synopsis, tags, coverJpegBase64, visibility, price } = params
     const bookId = buildPublishedBookId(authorId, book.title)
     const uploadedPaths: string[] = []
 
@@ -215,6 +216,9 @@ export const publishBook = async (params: PublishBookParams): Promise<PublishBoo
             tags,
             coverUrl,
             visibility,
+            // Un libro gratis siempre guarda null: asi nunca queda un precio viejo suelto
+            price: visibility === "paid" ? price : null,
+            currency: PRICE_CURRENCY,
             publishedAt: new Date().toISOString(),
             // Dato original del epub: se guarda pero no se muestra en la app (ver types/book.types.ts)
             originalAuthor: book.author,
