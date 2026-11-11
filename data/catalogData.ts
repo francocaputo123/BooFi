@@ -1,5 +1,3 @@
-import { BookStatus } from "@/types/catalog.types"
-
 export const BOOKS_COLLECTION = "books"
 
 /* Cuantos libros se bajan de una vez. El filtrado se hace en el celu, por eso hay un tope */
@@ -33,16 +31,14 @@ export const BOOK_GENRES = [
 
 export const ALL_GENRES_LABEL = "Todos"
 
-/*
- * Los libros que no traen "status" en Firestore se tratan como "en progreso":
- * es la suposicion menos enganosa para el lector (no promete que la historia esta terminada).
- */
-export const DEFAULT_BOOK_STATUS: BookStatus = "ongoing"
+/* Cuantos libros se muestran en la lista del Home (el catalogo viene ordenado del mas nuevo al mas viejo) */
+export const HOME_BOOKS_LIMIT = 10
 
-export const BOOK_STATUS_LABELS: Record<BookStatus, string> = {
-    ongoing: "En progreso",
-    completed: "Completa",
-}
+/* Ancho de cada tarjeta en la lista horizontal del Home */
+export const HOME_CARD_WIDTH = 110
+
+/* Cartelito que se muestra sobre la portada de los libros de pago */
+export const PAID_BADGE_LABEL = "Pago"
 
 export const CATALOG_LABELS = {
     SCREEN_TITLE: "Explorar",
@@ -55,4 +51,6 @@ export const CATALOG_LABELS = {
     EMPTY_CATALOG: "Todavía no hay historias publicadas.",
     NO_RESULTS: "No se encontraron resultados.",
     CLEAR_FILTERS: "Limpiar filtros",
+    HOME_SECTION_LATEST: "ÚLTIMAS PUBLICACIONES",
+    HOME_EMPTY: "Todavía no hay historias publicadas.",
 }

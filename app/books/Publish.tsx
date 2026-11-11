@@ -6,6 +6,7 @@ import {
     StyleSheet,
     Switch,
     Text,
+    TextInput,
     View,
 } from "react-native"
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
@@ -16,7 +17,7 @@ import TagSelector from "@/components/ui/TagSelector"
 import SynopsisEditModal from "@/components/ui/SynopsisEditModal"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
 import { AVAILABLE_TAGS, PUBLISH_LABELS } from "@/data/publishData"
-import { publishFormSchema } from "@/schema/publish.schema"
+import { priceSchema, publishFormSchema } from "@/schema/publish.schema"
 import { bookRouteParamsSchema } from "@/schema/reading.schema"
 import bookStore from "@/store/bookStore"
 import authStore from "@/store/authStore"
@@ -83,6 +84,8 @@ const PublishScreen = () => {
     const [status, setStatus] = useState<PublishStatus>("idle")
     const [errorMessage, setErrorMessage] = useState<string>("")
     const [access, setAccess] = useState<ChapterAccess>(DEFAULT_CHAPTER_ACCESS)
+    // El precio se escribe como texto (el TextInput solo maneja strings) y se convierte a numero al publicar
+    const [priceText, setPriceText] = useState("")
 
     const toggleTag = (tag: string) => {
         setTags((current) =>
@@ -100,6 +103,19 @@ const PublishScreen = () => {
             setStatus("error")
             setErrorMessage(validation.error.issues[0]?.message ?? "Datos inválidos")
             return
+        }
+
+        // El precio solo se valida y se guarda si el libro es de pago
+        const isPaid = access === "paid"
+        let price: number | null = null
+        if (isPaid) {
+            const priceValidation = priceSchema.safeParse(priceText === "" ? NaN : Number(priceText))
+            if (!priceValidation.success) {
+                setStatus("error")
+                setErrorMessage(priceValidation.error.issues[0]?.message ?? "Precio inválido")
+                return
+            }
+            price = priceValidation.data
         }
 
         if (!book || !authorId || !effectiveAuthorName) {
@@ -124,7 +140,8 @@ const PublishScreen = () => {
                 synopsis: validation.data.synopsis,
                 tags: validation.data.tags,
                 coverJpegBase64,
-                visibility: "public",
+                visibility: isPaid ? "paid" : "public",
+                price,
             })
 
             if (result.status === "duplicate") {
@@ -289,6 +306,28 @@ const PublishScreen = () => {
                         </Pressable>
                     )
                 })}
+
+                {/* Precio: solo aparece si el libro es de pago. Pesos enteros, sin centavos */}
+                {access === "paid" && (
+                    <View style={styles.priceBox}>
+                        <Text style={styles.fieldLabel}>{PUBLISH_LABELS.FIELD_PRICE}</Text>
+                        <View style={styles.priceRow}>
+                            <Text style={styles.priceSymbol}>$</Text>
+                            <TextInput
+                                style={styles.priceInput}
+                                value={priceText}
+                                // Se dejan solo los numeros: asi no se puede escribir "15,5" ni "abc"
+                                onChangeText={(text) => setPriceText(text.replace(/[^0-9]/g, ""))}
+                                placeholder={PUBLISH_LABELS.PRICE_PLACEHOLDER}
+                                placeholderTextColor={COLORS.textSecondary}
+                                keyboardType="number-pad"
+                                maxLength={7}
+                                editable={!isPublishing}
+                            />
+                        </View>
+                        <Text style={styles.priceHint}>{PUBLISH_LABELS.PRICE_HINT}</Text>
+                    </View>
+                )}
 
                 <View style={styles.sectionWithBadge}>
                     <Text style={styles.sectionTitle}>{PUBLISH_LABELS.SECTION_SCHEDULE}</Text>
@@ -522,6 +561,37 @@ const styles = StyleSheet.create({
         height: 10,
         borderRadius: 5,
         backgroundColor: COLORS.primary,
+    },
+    priceBox: {
+        backgroundColor: COLORS.background,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        padding: SPACING.m,
+        marginBottom: SPACING.s,
+    },
+    priceRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: SPACING.s,
+    },
+    priceSymbol: {
+        color: COLORS.text,
+        fontSize: FONTSIZE.l,
+        fontWeight: "700",
+    },
+    priceInput: {
+        flex: 1,
+        color: COLORS.text,
+        fontSize: FONTSIZE.l,
+        paddingVertical: SPACING.s,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    priceHint: {
+        color: COLORS.textSecondary,
+        fontSize: FONTSIZE.xs,
+        marginTop: SPACING.s,
     },
     toggleRow: {
         flexDirection: "row",

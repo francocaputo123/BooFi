@@ -1,7 +1,8 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
-import { BOOK_STATUS_LABELS } from "@/data/catalogData"
+import { PAID_BADGE_LABEL } from "@/data/catalogData"
 import { CatalogBook } from "@/types/catalog.types"
+import { formatPrice } from "@/utils/formatPrice"
 
 interface BookCardProps {
     book: CatalogBook
@@ -12,12 +13,14 @@ interface BookCardProps {
 }
 
 /**
- * Tarjeta de la grilla de Explorar: portada, titulo y autor.
- * El estado (Completa / En progreso) se muestra sobre la portada.
- * TODO: RF4.4 pide el indicador en la ficha del libro; cuando exista esa pantalla, agregarlo ahi tambien.
+ * Tarjeta de libro (Explorar y Home): portada, titulo y autor.
+ * Si el libro es de pago se muestra un cartelito sobre la portada ("Pago $1.500").
+ * No hay cartel de estado: un libro publicado se considera completo.
  */
 const BookCard = ({ book, width, onPress }: BookCardProps) => {
-    const isCompleted = book.status === "completed"
+    const isPaid = book.visibility === "paid"
+    // Si por algun motivo el libro de pago no trae precio, el cartel dice solo "Pago"
+    const badgeText = book.price ? `${PAID_BADGE_LABEL} ${formatPrice(book.price)}` : PAID_BADGE_LABEL
 
     return (
         <Pressable style={{ width }} onPress={onPress} disabled={!onPress}>
@@ -31,11 +34,11 @@ const BookCard = ({ book, width, onPress }: BookCardProps) => {
                     </View>
                 )}
 
-                <View style={[styles.statusBadge, isCompleted && styles.statusBadgeCompleted]}>
-                    <Text style={[styles.statusText, isCompleted && styles.statusTextCompleted]}>
-                        {BOOK_STATUS_LABELS[book.status]}
-                    </Text>
-                </View>
+                {isPaid && (
+                    <View style={styles.paidBadge}>
+                        <Text style={styles.paidBadgeText} numberOfLines={1}>{badgeText}</Text>
+                    </View>
+                )}
             </View>
 
             <Text style={styles.title} numberOfLines={2}>{book.title}</Text>
@@ -66,25 +69,20 @@ const styles = StyleSheet.create({
         fontSize: FONTSIZE.xxxl,
         fontWeight: "700",
     },
-    statusBadge: {
+    paidBadge: {
         position: "absolute",
         left: SPACING.xs + 2,
         bottom: SPACING.xs + 2,
-        backgroundColor: COLORS.background,
+        maxWidth: "90%",
+        backgroundColor: COLORS.primary,
         borderRadius: 8,
         paddingHorizontal: SPACING.s - 2,
         paddingVertical: 2,
     },
-    statusBadgeCompleted: {
-        backgroundColor: COLORS.success,
-    },
-    statusText: {
-        color: COLORS.textSecondary,
+    paidBadgeText: {
+        color: COLORS.background,
         fontSize: 10,
-        fontWeight: "600",
-    },
-    statusTextCompleted: {
-        color: COLORS.successText,
+        fontWeight: "700",
     },
     title: {
         color: COLORS.text,
