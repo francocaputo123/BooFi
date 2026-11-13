@@ -1,21 +1,28 @@
-import { Text, View, StyleSheet, Pressable, ScrollView, FlatList, ActivityIndicator } from 'react-native';
+import { Text, View, StyleSheet, Pressable, ScrollView, FlatList, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router'; 
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme";
 import GenreChipsIndex from "@/components/ui/GenreChipsIndex";
 import { BOOK_GENRES, CATALOG_LABELS, HOME_BOOKS_LIMIT, HOME_CARD_WIDTH } from "@/data/catalogData";
+import { useContinueReading } from "@/hooks/useContinueReading";
 import { useBookSearch } from "@/hooks/useBookSearch";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Card from '@/components/Card'
 import BookCard from '@/components/BookCard'
+import ContinueReadingCard from '@/components/ContinueReadingCard'
 
 export default function Index() {
   const router = useRouter(); 
   const { selectedGenre, setSelectedGenre, books, isLoading, errorMessage } = useBookSearch();
   // El catalogo ya viene ordenado del mas nuevo al mas viejo: alcanza con cortar los primeros
   const latestBooks = books.slice(0, HOME_BOOKS_LIMIT);
+  // Libros que el usuario empezó a leer (tocó "Comenzar a leer"): van primero en el Home
+  const { continueBooks } = useContinueReading(books);
+  const { width: screenWidth } = useWindowDimensions();
+  // Si hay un solo libro ocupa todo el ancho; si hay varios, se asoma el siguiente para invitar a deslizar
+  const continueCardWidth = continueBooks.length > 1 ? screenWidth - SPACING.m * 3 : screenWidth - SPACING.m * 2;
   
   useEffect(() => {
     if (selectedGenre) {
@@ -28,6 +35,31 @@ export default function Index() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+
+      {/* Seguir leyendo: solo aparece si el usuario ya empezó algún libro */}
+      {continueBooks.length > 0 && (
+        <>
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>{CATALOG_LABELS.HOME_SECTION_CONTINUE}</Text>
+          </View>
+          <FlatList
+            data={continueBooks}
+            keyExtractor={(item) => item.book.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={continueCardWidth + SPACING.m}
+            decelerationRate="fast"
+            contentContainerStyle={styles.booksList}
+            renderItem={({ item }) => (
+              <ContinueReadingCard
+                item={item}
+                width={continueCardWidth}
+                onPress={() => router.push({ pathname: "/books/Details", params: { id: item.book.id } })}
+              />
+            )}
+          />
+        </>
+      )}
 
       {/* Últimas publicaciones: la tarjeta es la misma de Explorar, así el cartel de "Pago" sale solo */}
       <View style={styles.sectionContainer}>
@@ -78,14 +110,13 @@ export default function Index() {
       </View>
 
       {/* Botón de tienda */}
-      {/* TODO: Agregar el link a la pantalla de tienda*/}
-      
+      {/* Tienda = Explorar filtrado a libros de pago (paidRequest lleva la hora para que se aplique en cada toque) */}
       <Pressable 
         style={({ pressed }) => [
           styles.mapButton,
           pressed && styles.btnPressed
         ]}
-        onPress={() => router.push('')}
+        onPress={() => router.push({ pathname: "/Explore", params: { paidRequest: String(Date.now()) } })}
       >
         <View style={[styles.mapBtnIcon, styles.mapBtnIconShadow]}>
           <MaterialIcons name="local-grocery-store" size={20} color={COLORS.primary} />

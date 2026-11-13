@@ -8,11 +8,16 @@ import BookSearch from "@/components/BookSearch"
 import { COLORS } from "@/constants/theme"
 
 export default function ExploreScreen() {
-  const { genreFromIndex } = useLocalSearchParams()
+  // paidRequest cambia en cada toque de Tienda (lleva la hora): asi el filtro se vuelve a prender
+  // aunque el usuario ya lo hubiera apagado antes
+  const { genreFromIndex, paidRequest } = useLocalSearchParams()
   
   return (
     <View style={styles.container}>
-      <BookSearch genreFromIndex={genreFromIndex ? genreFromIndex : null}/>
+      <BookSearch
+        genreFromIndex={genreFromIndex ? genreFromIndex : null}
+        paidRequest={paidRequest ? paidRequest : null}
+      />
     </View>
   );
 }
