@@ -1,6 +1,6 @@
 import { Text, View, StyleSheet, Pressable, ScrollView, FlatList, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useEffect } from 'react';
-import { useRouter } from 'expo-router'; 
+import { useRouter } from 'expo-router';
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme";
 import GenreChipsIndex from "@/components/ui/GenreChipsIndex";
 import { BOOK_GENRES, CATALOG_LABELS, HOME_BOOKS_LIMIT, HOME_CARD_WIDTH } from "@/data/catalogData";
@@ -14,7 +14,7 @@ import BookCard from '@/components/BookCard'
 import ContinueReadingCard from '@/components/ContinueReadingCard'
 
 export default function Index() {
-  const router = useRouter(); 
+  const router = useRouter();
   const { selectedGenre, setSelectedGenre, books, isLoading, errorMessage } = useBookSearch();
   // El catalogo ya viene ordenado del mas nuevo al mas viejo: alcanza con cortar los primeros
   const latestBooks = books.slice(0, HOME_BOOKS_LIMIT);
@@ -23,7 +23,7 @@ export default function Index() {
   const { width: screenWidth } = useWindowDimensions();
   // Si hay un solo libro ocupa todo el ancho; si hay varios, se asoma el siguiente para invitar a deslizar
   const continueCardWidth = continueBooks.length > 1 ? screenWidth - SPACING.m * 3 : screenWidth - SPACING.m * 2;
-  
+
   useEffect(() => {
     if (selectedGenre) {
       router.push({
@@ -61,57 +61,25 @@ export default function Index() {
         </>
       )}
 
-      {/* Últimas publicaciones: la tarjeta es la misma de Explorar, así el cartel de "Pago" sale solo */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>{CATALOG_LABELS.HOME_SECTION_LATEST}</Text>
-        <Pressable onPress={() => router.push('/Explore')}>
-          <Text style={{color: COLORS.primary, fontSize: FONTSIZE.m}}>Ver todos</Text>
-        </Pressable>
-      </View>
-
-      {isLoading ? (
-        <ActivityIndicator color={COLORS.primary} style={styles.booksFeedback} />
-      ) : latestBooks.length === 0 ? (
-        // Si falla la carga y no hay libros se avisa el error; si simplemente no hay nada publicado, el mensaje vacío
-        <Text style={[styles.feedbackText, styles.booksFeedback]}>
-          {errorMessage || CATALOG_LABELS.HOME_EMPTY}
-        </Text>
-      ) : (
-        <FlatList
-          data={latestBooks}
-          keyExtractor={(book) => book.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.booksList}
-          renderItem={({ item }) => (
-            <BookCard
-              book={item}
-              width={HOME_CARD_WIDTH}
-              onPress={() => router.push({ pathname: "/books/Details", params: { id: item.id } })}
-            />
-          )}
-        />
-      )}
-
       {/* Tags de exploración por género */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>EXPLORAR POR GÉNERO</Text>
         <Pressable onPress={() => router.push('/Explore')}>
-          <Text style={{color: COLORS.primary, fontSize: FONTSIZE.m}}>Ver todos</Text>
+          <Text style={{ color: COLORS.primary, fontSize: FONTSIZE.m }}>Ver todos</Text>
         </Pressable>
       </View>
 
       <View style={styles.chipsContainer}>
-          <GenreChipsIndex
-              genres={BOOK_GENRES}
-              selected={selectedGenre}
-              onSelect={setSelectedGenre}
-          />
+        <GenreChipsIndex
+          genres={BOOK_GENRES}
+          selected={selectedGenre}
+          onSelect={setSelectedGenre}
+        />
       </View>
 
       {/* Botón de tienda */}
       {/* Tienda = Explorar filtrado a libros de pago (paidRequest lleva la hora para que se aplique en cada toque) */}
-      <Pressable 
+      <Pressable
         style={({ pressed }) => [
           styles.mapButton,
           pressed && styles.btnPressed
@@ -131,7 +99,7 @@ export default function Index() {
       </Pressable>
 
       {/* Botón de mapa */}
-      <Pressable 
+      <Pressable
         style={({ pressed }) => [
           styles.mapButton,
           pressed && styles.btnPressed
@@ -179,7 +147,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.m,
   },
   chipsContainer: {
-    marginHorizontal: SPACING.m, 
+    marginHorizontal: SPACING.m,
     marginBottom: SPACING.xxl,
     marginTop: SPACING.s,
   },
@@ -201,7 +169,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     padding: SPACING.m,
     marginBottom: SPACING.l,
-    marginHorizontal: SPACING.m, 
+    marginHorizontal: SPACING.m,
   },
   btnPressed: {
     opacity: 0.75,
@@ -209,7 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfacePressed,
   },
   mapBtnText: {
-    flex: 1, 
+    flex: 1,
   },
   mapBtnTitle: {
     color: COLORS.text,
