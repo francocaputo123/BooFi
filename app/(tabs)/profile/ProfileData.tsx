@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -30,6 +30,8 @@ const ProfileData = () => {
     const router = useRouter()
 
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const [change, setChange] = useState("")
     const [fieldText, setFieldText] = useState("")
     const [currentField, setCurrentField] = useState<ProfileKey | null>(null)
@@ -60,41 +62,62 @@ const ProfileData = () => {
         setCurrentField(fieldKey)
         setFieldText(fieldTitles[fieldKey] || "Actualizar")
         setChange(userData[fieldKey] || "")
+        setError(null)
         setIsModalOpen(true)
     }
 
     const handleSave = async () => {
         if(!currentField) return 
 
-        switch(currentField) {
-            case 'username' : {
-                const response = await updateUsername(change)
+        const notAllowed = ["", null, undefined]
+        if(notAllowed.includes(change?.trim())) {
+            return setError("El campo no puede estar vacío")
+        }
 
-                if(response) {
+        setError(null)
+        setLoading(true)
 
-                    setAuthData({
-                        [currentField] : change
-                    })
-                    
-                    setIsModalOpen(false)
-                    return
+        try {
+            switch(currentField) {
+                case 'username' : {
+                    const response = await updateUsername(change.trim())
+
+                    if(response?.status === "Error") {
+                        setError(response.message || "Error al actualizar el nombre de usuario")
+                        return
+                    }
+
+                    if(response?.status === "Success") {
+                        setAuthData({
+                            [currentField] : change.trim()
+                        })
+                        setIsModalOpen(false)
+                        return
+                    }
+                    break
                 }
-                break
-            }
-            case 'bio' : {
-                const response = await updateBio(change)
+                case 'bio' : {
+                    const response = await updateBio(change.trim())
 
-                if(response) {
+                    if(response?.status === "Error") {
+                        setError(response.message || "Error al actualizar la biografía")
+                        return
+                    }
 
-                    setAuthData({
-                        [currentField] : change
-                    })
-                    
-                    setIsModalOpen(false)
-                    return
+                    if(response?.status === "Success") {
+                        setAuthData({
+                            [currentField] : change.trim()
+                        })
+                        setIsModalOpen(false)
+                        return
+                    }
+                    break
                 }
-                break
             }
+        } catch (error : any) {
+            setError(error?.message || "Ocurrió un error inesperado")
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -183,13 +206,24 @@ const ProfileData = () => {
                 textAlignVertical="top" 
                 />
 
+                {error && (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>- {error}</Text>
+                    </View>
+                )}
+
                 <Pressable
+                    disabled={loading}
                     style={styles.modalBtn}
                     onPress={handleSave}
                 >
-                    <Text style={styles.modalBtnText}>
-                        Guardar cambios
-                    </Text>
+                    {loading ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                        <Text style={styles.modalBtnText}>
+                            Guardar cambios
+                        </Text>
+                    )}
                 </Pressable>
             </Modal>
         </SafeAreaView>
@@ -304,6 +338,19 @@ const styles = StyleSheet.create({
     btnPressed: {
         opacity: 0.90,
         transform: [{ scale: 0.99 }],
+    },
+
+    errorContainer: {
+        backgroundColor: COLORS.danger || '#FFD2D2',
+        padding: 10,
+        borderRadius: 10,
+        marginBottom: 12,
+        width: '100%',
+    },
+
+    errorText: {
+        color: COLORS.dangerText || '#D8000C',
+        fontSize: 13,
     }
 });
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import {
     ActivityIndicator,
     Alert,
@@ -40,6 +40,8 @@ const Checkout = () => {
 
     const [isProcessing, setIsProcessing] = useState(false)
     const [purchaseSuccess, setPurchaseSuccess] = useState(false)
+    const isConfirmingRef = useRef(false)
+    const hasHandledSuccessRef = useRef(false)
 
     const price = book?.price ?? 0
     const formattedPrice = formatPrice(price)
@@ -49,6 +51,11 @@ const Checkout = () => {
             Alert.alert("Sesión requerida", "Tenés que iniciar sesión para comprar un libro.")
             return
         }
+
+        if (isConfirmingRef.current || hasHandledSuccessRef.current) {
+            return
+        }
+        isConfirmingRef.current = true
 
         try {
             setIsProcessing(true)
@@ -60,6 +67,7 @@ const Checkout = () => {
                 paymentId: customPaymentId,
             })
 
+            hasHandledSuccessRef.current = true
             setPurchaseSuccess(true)
             Alert.alert(
                 "¡Compra exitosa!",
@@ -74,6 +82,7 @@ const Checkout = () => {
                 ]
             )
         } catch (error) {
+            isConfirmingRef.current = false
             Alert.alert("Error", error instanceof Error ? error.message : "No se pudo procesar la compra")
         } finally {
             setIsProcessing(false)
@@ -96,7 +105,7 @@ const Checkout = () => {
 
         if (targetBookId && targetBookId !== bookId) return
 
-        if (status === "approved" && currentUserId && !isPurchased && !purchaseSuccess) {
+        if (status === "approved" && currentUserId && !isPurchased && !purchaseSuccess && !isConfirmingRef.current && !hasHandledSuccessRef.current) {
             const paymentId = (queryParams.payment_id || parsedIncoming?.payment_id) as string | undefined
             handleConfirmPurchase(paymentId)
             return
