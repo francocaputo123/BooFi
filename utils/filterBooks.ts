@@ -4,9 +4,9 @@ import { normalizeText } from "@/utils/normalizeText"
 /**
  * Filtra el catalogo por texto (titulo o autor) y por genero. Es una funcion pura
  * (no usa Firebase ni React) para poder probarla sola y reutilizarla.
- * Los dos criterios se combinan: el libro tiene que cumplir ambos.
+ * Los criterios se combinan: el libro tiene que cumplirlos todos.
  * @param books : libros a filtrar
- * @param filters : texto y genero elegidos por el usuario (genre null = todos)
+ * @param filters : texto, genero (null = todos) y "solo de pago" elegidos por el usuario
  * @returns CatalogBook[] : libros que cumplen los criterios
  */
 export const filterBooks = (books: CatalogBook[], filters: CatalogFilters): CatalogBook[] => {
@@ -20,6 +20,8 @@ export const filterBooks = (books: CatalogBook[], filters: CatalogFilters): Cata
 
         const matchesGenre = filters.genre === null || book.tags.includes(filters.genre)
 
-        return matchesText && matchesGenre
+        const matchesPaid = !filters.onlyPaid || book.visibility === "paid"
+
+        return matchesText && matchesGenre && matchesPaid
     })
 }

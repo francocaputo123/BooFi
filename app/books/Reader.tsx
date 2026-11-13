@@ -6,6 +6,7 @@ import StatusMessage from '@/components/ui/StatusMessage';
 import { COLORS } from '@/constants/theme';
 import { READER_LABELS } from '@/data/readingData';
 import { useReadingProgress } from '@/hooks/useReadingProgress';
+import { useBookAccess } from '@/hooks/useBookAccess';
 import { bookRouteParamsSchema } from '@/schema/reading.schema';
 import bookStore from '@/store/bookStore';
 import { ReaderScreenParams } from '@/types/reading.types';
@@ -24,9 +25,10 @@ const ReaderScreen = () => {
   const book = bookStore((state) => state.booksById[bookId]);
   // Solo los libros publicados sincronizan el progreso con la nube (RF5.1 CA3 / RF5.4)
   const { progress, isReady, savePosition } = useReadingProgress(bookId, book?.isPublished === true);
+  const { hasAccess, isCheckingAccess } = useBookAccess(bookId, book);
 
   const renderContent = () => {
-    if (!isReady) {
+    if (!isReady || isCheckingAccess) {
       return <StatusMessage isLoading message={READER_LABELS.LOADING_PROGRESS} />;
     }
 
@@ -36,6 +38,16 @@ const ReaderScreen = () => {
           message={READER_LABELS.BOOK_NOT_FOUND}
           actionLabel={READER_LABELS.BACK}
           onAction={() => router.back()}
+        />
+      );
+    }
+
+    if (!hasAccess) {
+      return (
+        <StatusMessage
+          message="Este libro es de pago. Necesitás comprarlo para desbloquear su lectura."
+          actionLabel="Ir a pagar"
+          onAction={() => router.replace({ pathname: '/books/Checkout', params: { id: bookId } })}
         />
       );
     }

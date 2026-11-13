@@ -151,7 +151,13 @@ const PublishScreen = () => {
             }
             
             // Se actualiza el store para que la ficha (Details) muestre el acceso sin recargar nada
-            saveBook(bookWithAccess)
+            saveBook({
+                ...bookWithAccess,
+                isPublished: true,
+                visibility: isPaid ? "paid" : "public",
+                price,
+                authorId,
+            })
             setStatus("success")
         } catch (error) {
             setStatus("error")

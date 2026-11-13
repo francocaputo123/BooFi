@@ -15,6 +15,9 @@ export const publishedBookToEpubBook = (published: PublishedBook): EpubParsedBoo
         tags: published.tags,
         isPublished: true,
         isContentLoaded: false,
+        visibility: published.visibility,
+        price: published.price,
+        authorId: published.authorId,
         chapters: published.chapters.map((chapter) => ({
             id: String(chapter.index),
             title: chapter.title,

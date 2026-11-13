@@ -22,6 +22,7 @@ export const useBookSearch = () => {
 
     const [searchText, setSearchText] = useState("")
     const [selectedGenre, setSelectedGenre] = useState<string | null>(null)
+    const [onlyPaid, setOnlyPaid] = useState(false)
 
     // Un ref (y no un estado) porque cambiarlo no tiene que volver a dibujar la pantalla
     const hasLoadedOnce = useRef(false)
@@ -59,15 +60,16 @@ export const useBookSearch = () => {
     const clearFilters = useCallback(() => {
         setSearchText("")
         setSelectedGenre(null)
+        setOnlyPaid(false)
     }, [])
 
     // useMemo evita volver a filtrar toda la lista cuando cambia algo que no la afecta (ej. isLoading)
     const filteredBooks = useMemo(
-        () => filterBooks(books, { searchText, genre: selectedGenre }),
-        [books, searchText, selectedGenre]
+        () => filterBooks(books, { searchText, genre: selectedGenre, onlyPaid }),
+        [books, searchText, selectedGenre, onlyPaid]
     )
 
-    const hasActiveFilters = searchText.trim() !== "" || selectedGenre !== null
+    const hasActiveFilters = searchText.trim() !== "" || selectedGenre !== null || onlyPaid
 
     return {
         books,
@@ -81,6 +83,8 @@ export const useBookSearch = () => {
         setSearchText,
         selectedGenre,
         setSelectedGenre,
+        onlyPaid,
+        setOnlyPaid,
         clearFilters,
         hasActiveFilters,
     }

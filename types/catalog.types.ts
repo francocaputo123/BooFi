@@ -14,10 +14,14 @@ export interface CatalogBook {
     visibility: BookVisibility
     /* Precio en pesos argentinos (entero). null si el libro es gratis o no trae precio */
     price: number | null
+    /* Cantidad de capitulos: hace falta para calcular el % de lectura en el Home. 0 si el libro no trae la lista */
+    chapterCount: number
 }
 
 /* Lo que elige el usuario en Explorar. genre null = "Todos" */
 export interface CatalogFilters {
     searchText: string
     genre: string | null
+    /* true = solo libros de pago (boton Tienda del Home) */
+    onlyPaid: boolean
 }

@@ -21,6 +21,7 @@ const mapBookDocument = (snapshot: QueryDocumentSnapshot<DocumentData>): Catalog
         visibility: data.visibility === "paid" ? "paid" : "public",
         // Solo se acepta un entero positivo; cualquier otra cosa se trata como "sin precio"
         price: Number.isInteger(data.price) && data.price > 0 ? data.price : null,
+        chapterCount: Array.isArray(data.chapters) ? data.chapters.length : 0,
     }
 }
 
