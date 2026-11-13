@@ -34,7 +34,7 @@ import { DEFAULT_CHAPTER_ACCESS } from "@/constants/chapterAccess"
  * 3) Sube el Blob con uploadBytes
  * 4) Borra el archivo temporal, salga bien o mal
  */
-const uploadBase64Jpeg = async (storageRef: ReturnType<typeof ref>, base64: string) => {
+export const uploadBase64Jpeg = async (storageRef: ReturnType<typeof ref>, base64: string) => {
     const tempUri = `${FileSystem.cacheDirectory}upload-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}.jpg`
