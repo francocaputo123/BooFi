@@ -1,5 +1,6 @@
-import { writeBatch, getDoc, doc, setDoc, serverTimestamp} from "firebase/firestore";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut} from "firebase/auth";
+import { writeBatch, getDoc, doc, setDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, deleteUser } from "firebase/auth";
+import { ref, deleteObject } from "firebase/storage";
 
 //types
 import { registerForm, loginForm} from "@/types/auth.types";
@@ -8,7 +9,7 @@ import { registerForm, loginForm} from "@/types/auth.types";
 import { handleFirebaseError } from "@/utils/handleFirebaseError";
 
 //conf
-import { auth, db } from "@/config/firebaseConfig";
+import { auth, db, storage } from "@/config/firebaseConfig";
 
 export const registerUser = async (formData : registerForm) => {
     try {
@@ -90,5 +91,52 @@ export const destroyAuth = async () => {
         await signOut(auth)
     } catch (error : any) {
         throw new Error(error.message)
+    }
+}
+
+/**
+ * Elimina la cuenta y perfil del usuario autenticado sin eliminar sus libros publicados.
+ */
+export const deleteUserAccount = async () => {
+    const user = auth.currentUser
+    if (!user) {
+        throw new Error("No hay un usuario autenticado")
+    }
+
+    const uid = user.uid
+
+    // 1. Eliminar avatar de Firebase Storage si existe
+    try {
+        const profileRef = doc(db, 'profiles', uid)
+        const profileSnap = await getDoc(profileRef)
+        if (profileSnap.exists()) {
+            const photoPath = profileSnap.data()?.photoPath
+            if (photoPath) {
+                try {
+                    await deleteObject(ref(storage, photoPath))
+                } catch (err) {
+                    console.warn("[authService] No se pudo borrar el avatar del storage:", err)
+                }
+            }
+            // 2. Eliminar documento en profiles/{uid}
+            await deleteDoc(profileRef)
+        }
+    } catch (err) {
+        console.warn("[authService] Error al eliminar perfil en Firestore:", err)
+    }
+
+    // 3. Eliminar documento en users/{uid}
+    try {
+        const userRef = doc(db, 'users', uid)
+        await deleteDoc(userRef)
+    } catch (err) {
+        console.warn("[authService] Error al eliminar usuario en Firestore:", err)
+    }
+
+    // 4. Eliminar el usuario en Firebase Authentication (los libros publicados en 'books' NO se tocan)
+    try {
+        await deleteUser(user)
+    } catch (error: any) {
+        throw new Error(handleFirebaseError(error))
     }
 }

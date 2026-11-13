@@ -10,6 +10,8 @@ interface BookCardProps {
     width: number
     /* TODO: navegar a la ficha (Sinopsis) cuando esa pantalla pueda leer libros desde Firestore */
     onPress?: () => void
+    badge?: string
+    badgeColor?: string
 }
 
 /**
@@ -17,10 +19,11 @@ interface BookCardProps {
  * Si el libro es de pago se muestra un cartelito sobre la portada ("Pago $1.500").
  * No hay cartel de estado: un libro publicado se considera completo.
  */
-const BookCard = ({ book, width, onPress }: BookCardProps) => {
+const BookCard = ({ book, width, onPress, badge, badgeColor }: BookCardProps) => {
     const isPaid = book.visibility === "paid"
     // Si por algun motivo el libro de pago no trae precio, el cartel dice solo "Pago"
-    const badgeText = book.price ? `${PAID_BADGE_LABEL} ${formatPrice(book.price)}` : PAID_BADGE_LABEL
+    const badgeText = badge ?? (book.price ? `${PAID_BADGE_LABEL} ${formatPrice(book.price)}` : PAID_BADGE_LABEL)
+    const showBadge = Boolean(badge || isPaid)
 
     return (
         <Pressable style={{ width }} onPress={onPress} disabled={!onPress}>
@@ -34,8 +37,8 @@ const BookCard = ({ book, width, onPress }: BookCardProps) => {
                     </View>
                 )}
 
-                {isPaid && (
-                    <View style={styles.paidBadge}>
+                {showBadge && (
+                    <View style={[styles.paidBadge, badgeColor ? { backgroundColor: badgeColor } : null]}>
                         <Text style={styles.paidBadgeText} numberOfLines={1}>{badgeText}</Text>
                     </View>
                 )}

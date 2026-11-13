@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore"
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, increment } from "firebase/firestore"
 import { db } from "@/config/firebaseConfig"
 import { handleFirebaseError } from "@/utils/handleFirebaseError"
 import { CreatePurchaseParams, PurchaseRecord } from "@/types/purchase.types"
@@ -58,6 +58,17 @@ export const recordBookPurchase = async (
 
     try {
         const now = new Date().toISOString()
+        const userPurchRef = purchaseRef(userId, params.bookId)
+
+        // Verificamos si ya existe la compra aprobada para evitar procesarla múltiples veces
+        const existingPurchSnap = await getDoc(userPurchRef)
+        if (existingPurchSnap.exists()) {
+            const existingData = existingPurchSnap.data() as Partial<PurchaseRecord>
+            if (existingData.status === "approved" || !existingData.status) {
+                return
+            }
+        }
+
         const record: PurchaseRecord = {
             bookId: params.bookId,
             title: params.title,
@@ -68,7 +79,42 @@ export const recordBookPurchase = async (
             paymentId: params.paymentId,
         }
 
-        await setDoc(purchaseRef(userId, params.bookId), record)
+        await setDoc(userPurchRef, record)
+
+        // Registrar la venta para el autor del libro y actualizar estadísticas de forma idempotente
+        try {
+            const bookSnap = await getDoc(doc(db, "books", params.bookId))
+            if (bookSnap.exists()) {
+                const bookData = bookSnap.data()
+                const authorId = bookData?.authorId
+                if (authorId) {
+                    // ID determinista para evitar duplicar registros ante múltiples invocaciones
+                    const saleId = params.paymentId 
+                        ? `${params.bookId}_${params.paymentId}` 
+                        : `${params.bookId}_${userId}`
+                    const authorSaleRef = doc(db, "users", authorId, "sales", saleId)
+
+                    const existingSaleSnap = await getDoc(authorSaleRef)
+                    if (!existingSaleSnap.exists()) {
+                        await setDoc(authorSaleRef, {
+                            bookId: params.bookId,
+                            title: params.title,
+                            price: params.price,
+                            currency: params.currency ?? "ARS",
+                            buyerId: userId,
+                            purchasedAt: now,
+                            paymentId: params.paymentId ?? null,
+                        })
+
+                        await updateDoc(doc(db, "books", params.bookId), {
+                            salesCount: increment(1),
+                        }).catch(() => {})
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("[purchaseService] No se pudo registrar la venta en la subcolección del autor:", err)
+        }
     } catch (error) {
         console.error("[purchaseService] Error al guardar compra:", error)
         throw new Error(handleFirebaseError(error))

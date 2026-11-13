@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
@@ -21,6 +21,7 @@ import { updatePass } from '@/services/profileService';
 
 const ProfilePassword = () => {
 
+    const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string[]>([])
 
     const [success, setSuccess] = useState<string>("")
@@ -74,6 +75,7 @@ const ProfilePassword = () => {
         }
 
         try {
+            setLoading(true);
             const response = await updatePass(password);  
 
             if (response instanceof Error) {
@@ -103,6 +105,8 @@ const ProfilePassword = () => {
             
         } catch (error: any) {
             return setError([error.message || "Ocurrió un error inesperado"]);
+        } finally {
+            setLoading(false);
         }
     }    
 
@@ -185,13 +189,18 @@ const ProfilePassword = () => {
                     }
 
                     <Pressable
+                        disabled={loading}
                         onPress={() => handleUpdatePassword()}
                         style={({ pressed }) => [
                             styles.saveBtn,
                             pressed && styles.btnPressed
                         ]}
                     >
-                        <Text style={styles.saveBtnText}>Actualizar contraseña</Text>
+                        {loading ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <Text style={styles.saveBtnText}>Actualizar contraseña</Text>
+                        )}
                     </Pressable>
                 </View>
             </ScrollView>

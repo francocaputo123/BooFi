@@ -32,6 +32,13 @@ const ProfileLayout = () => {
         }} 
       />
       <Stack.Screen 
+        name="ProfileEarnings" 
+        options={{ 
+          title: 'Mis ganancias',
+          headerShown: true,
+        }} 
+      />
+      <Stack.Screen 
         name="ProfilePassword" 
         options={{ 
           title: 'Contraseña',
