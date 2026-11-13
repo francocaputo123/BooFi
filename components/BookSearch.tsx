@@ -3,6 +3,7 @@ import { useRouter } from "expo-router"
 import BookCard from "@/components/BookCard"
 import SearchBar from "@/components/ui/SearchBar"
 import GenreChips from "@/components/ui/GenreChips"
+import PaidFilterChip from "@/components/ui/PaidFilterChip"
 import FeedbackMessage from "@/components/ui/FeedbackMessage"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
 import { ALL_GENRES_LABEL, BOOK_GENRES, CATALOG_LABELS, GRID_COLUMNS, GRID_GAP } from "@/data/catalogData"
@@ -14,7 +15,7 @@ import { useEffect } from "react"
  * Los datos y la logica viven en useBookSearch; aca solo se dibuja segun el estado.
  */
 const BookSearch = ( props : any) => {
-    const { genreFromIndex = null } = props
+    const { genreFromIndex = null, paidRequest = null } = props
     const { width: screenWidth } = useWindowDimensions()
     const router = useRouter()
     const {
@@ -29,6 +30,8 @@ const BookSearch = ( props : any) => {
         setSearchText,
         selectedGenre,
         setSelectedGenre,
+        onlyPaid,
+        setOnlyPaid,
         clearFilters,
         hasActiveFilters,
     } = useBookSearch()
@@ -38,6 +41,13 @@ const BookSearch = ( props : any) => {
             setSelectedGenre(genreFromIndex)
         }
     }, [genreFromIndex])
+
+    // El boton Tienda del Home manda un paidRequest nuevo cada vez: prende el filtro "Solo de pago"
+    useEffect(() => {
+        if (paidRequest) {
+            setOnlyPaid(true)
+        }
+    }, [paidRequest])
 
     const cardWidth = (screenWidth - SPACING.l * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS
 
@@ -121,6 +131,14 @@ const BookSearch = ( props : any) => {
                 />
             </View>
 
+            <View style={styles.paidFilter}>
+                <PaidFilterChip
+                    label={CATALOG_LABELS.FILTER_ONLY_PAID}
+                    selected={onlyPaid}
+                    onToggle={() => setOnlyPaid(!onlyPaid)}
+                />
+            </View>
+
             <View style={styles.results}>{renderResults()}</View>
         </View>
     )
@@ -140,6 +158,9 @@ const styles = StyleSheet.create({
     },
     chips: {
         marginTop: SPACING.m,
+    },
+    paidFilter: {
+        marginTop: SPACING.s,
     },
     results: {
         flex: 1,

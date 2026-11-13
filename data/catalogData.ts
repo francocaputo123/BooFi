@@ -34,6 +34,9 @@ export const ALL_GENRES_LABEL = "Todos"
 /* Cuantos libros se muestran en la lista del Home (el catalogo viene ordenado del mas nuevo al mas viejo) */
 export const HOME_BOOKS_LIMIT = 10
 
+/* Cuantos libros se muestran como maximo en "Seguir leyendo" */
+export const HOME_CONTINUE_LIMIT = 10
+
 /* Ancho de cada tarjeta en la lista horizontal del Home */
 export const HOME_CARD_WIDTH = 110
 
@@ -52,5 +55,7 @@ export const CATALOG_LABELS = {
     NO_RESULTS: "No se encontraron resultados.",
     CLEAR_FILTERS: "Limpiar filtros",
     HOME_SECTION_LATEST: "ÚLTIMAS PUBLICACIONES",
+    HOME_SECTION_CONTINUE: "SEGUIR LEYENDO",
+    FILTER_ONLY_PAID: "Solo de pago",
     HOME_EMPTY: "Todavía no hay historias publicadas.",
 }

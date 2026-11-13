@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { EpubDetailScreenParams } from '../../types/epub';
-import { SYNOPSIS_MOCK, RATING_MOCK, CATEGORIES_MOCK, COVER_MOCK } from '../../data/epubMock';
+import { SYNOPSIS_MOCK, CATEGORIES_MOCK, COVER_MOCK } from '../../data/epubMock';
 import { READER_LABELS } from '../../data/readingData';
 import { COLORS, SPACING, FONTSIZE } from '../../constants/theme';
 import StatusMessage from '../../components/ui/StatusMessage';
@@ -82,7 +82,6 @@ const EpubDetailScreen = () => {
 
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.author}>{authorName}</Text>
-        <Text style={styles.text}>⭐ {RATING_MOCK}</Text>
 
         <View style={styles.categoriesRow}>
           {categories.map((category) => (

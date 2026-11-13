@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from "firebase/firestore"
+import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore"
 import { db } from "@/config/firebaseConfig"
 import { READING_PROGRESS_COLLECTION } from "@/data/readingData"
 import { readingProgressSchema } from "@/schema/reading.schema"
@@ -28,6 +28,28 @@ export const fetchRemoteProgress = async (
         return result.success ? result.data : null
     } catch (error) {
         console.error("[readingProgressService] No se pudo leer el progreso:", error)
+        throw new Error(handleFirebaseError(error))
+    }
+}
+
+/**
+ * Baja de Firestore el progreso de TODOS los libros que leyo un usuario (para "Seguir leyendo" en el Home).
+ * Es una sola consulta a la subcoleccion users/{uid}/readingProgress.
+ * @param userId : uid del usuario logueado
+ * @returns ReadingProgress[] : progresos validos (los documentos con datos invalidos se ignoran)
+ */
+export const fetchAllRemoteProgress = async (userId: string): Promise<ReadingProgress[]> => {
+    try {
+        const snapshot = await getDocs(collection(db, "users", userId, READING_PROGRESS_COLLECTION))
+
+        const progressList: ReadingProgress[] = []
+        snapshot.docs.forEach((document) => {
+            const result = readingProgressSchema.safeParse(document.data())
+            if (result.success) progressList.push(result.data)
+        })
+        return progressList
+    } catch (error) {
+        console.error("[readingProgressService] No se pudo leer el progreso de los libros:", error)
         throw new Error(handleFirebaseError(error))
     }
 }
