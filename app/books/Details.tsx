@@ -1,4 +1,5 @@
-import { View, ScrollView, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { View, ScrollView, Text, Image, Pressable, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,13 +9,17 @@ import { READER_LABELS } from '../../data/readingData';
 import { COLORS, SPACING, FONTSIZE } from '../../constants/theme';
 import StatusMessage from '../../components/ui/StatusMessage';
 import bookStore from '../../store/bookStore';
+import authStore from '../../store/authStore';
 import { useReadingProgress } from '../../hooks/useReadingProgress';
 import { useAuthorName } from '../../hooks/useAuthorName';
 import { usePublishedBook } from '../../hooks/usePublishedBook';
+import { useBookAccess } from '../../hooks/useBookAccess';
+import { recordBookPurchase } from '../../services/purchaseService';
 import { bookRouteParamsSchema } from '../../schema/reading.schema';
 import { getReadButtonLabel } from '../../utils/readingProgress';
 import { clampChapterIndex, formatChapterCounter } from '../../utils/chapterNavigation';
 import { ACCESS_LABELS } from '../../constants/chapterAccess';
+import { formatPrice } from '../../utils/formatPrice';
 
 
 /**
@@ -30,13 +35,57 @@ const EpubDetailScreen = () => {
   const bookId = parsedParams.success ? parsedParams.data.id : '';
 
   const book = bookStore((state) => state.booksById[bookId]);
+  const currentUserId = authStore((state) => state.public_id);
   const { progress, isReady } = useReadingProgress(bookId, book?.isPublished === true);
   const { isLoadingBook, loadErrorMessage } = usePublishedBook(bookId);
+  const { hasAccess, isCheckingAccess, isPaid, isPurchased, refreshAccess } = useBookAccess(bookId, book);
   // El autor que se muestra en un libro sin publicar es el usuario logueado, no el author del epub
   const loggedUserName = useAuthorName();
 
+  useEffect(() => {
+    const queryParams = params as Record<string, string | undefined>;
+    const status = queryParams.collection_status || queryParams.status;
+    const paymentId = queryParams.payment_id;
+
+    if (status === 'approved' && currentUserId && book && !hasAccess) {
+      recordBookPurchase(currentUserId, {
+        bookId,
+        title: book.title,
+        price: book.price ?? 0,
+        currency: 'ARS',
+        paymentId,
+      }).then(() => {
+        refreshAccess();
+        Alert.alert(
+          '¡Pago aprobado!',
+          `Tu compra de "${book.title}" fue acreditada con éxito. ¡Ya podés leerlo!`
+        );
+      });
+      return;
+    }
+
+    if (status === 'rejected') {
+      Alert.alert(
+        'Pago rechazado',
+        'El pago no se pudo completar. No se realizó ningún cargo a tu cuenta.'
+      );
+      return;
+    }
+
+    if (status === 'in_process' || status === 'pending') {
+      Alert.alert(
+        'Pago pendiente',
+        'El pago está en proceso de acreditación. Apenas se confirme, tu libro quedará desbloqueado.'
+      );
+    }
+  }, [params, currentUserId, book, hasAccess, bookId, refreshAccess]);
+
   const handleReadPress = () => {
     router.push({ pathname: '/books/Reader', params: { id: bookId } });
+  };
+
+  const handlePayPress = () => {
+    router.push({ pathname: '/books/Checkout', params: { id: bookId } });
   };
 
   const handlePublishPress = () => {
@@ -93,9 +142,44 @@ const EpubDetailScreen = () => {
         <Text style={styles.sectionTitle}>SINOPSIS</Text>
         <Text style={styles.synopsisText}>{synopsis || SYNOPSIS_MOCK}</Text>
 
-        <Pressable style={styles.readButton} onPress={handleReadPress}>
-          <Text style={styles.readButtonText}>{getReadButtonLabel(progress)}</Text>
-        </Pressable>
+        {isPaid && !hasAccess && (
+          <View style={styles.paidNotice}>
+            <Ionicons name="pricetag-outline" size={16} color={COLORS.primary} />
+            <Text style={styles.paidNoticeText}>
+              {book.price ? `Libro de pago · ${formatPrice(book.price)}` : 'Libro de pago'}
+            </Text>
+          </View>
+        )}
+
+        {isPurchased && (
+          <View style={styles.purchasedNotice}>
+            <Ionicons name="checkmark-circle" size={16} color={COLORS.successText} />
+            <Text style={styles.purchasedNoticeText}>Libro comprado</Text>
+          </View>
+        )}
+
+        {!hasAccess ? (
+          <Pressable
+            style={styles.payButton}
+            onPress={handlePayPress}
+            disabled={isCheckingAccess}
+          >
+            {isCheckingAccess ? (
+              <ActivityIndicator color={COLORS.background} size="small" />
+            ) : (
+              <>
+                <Ionicons name="cart-outline" size={20} color={COLORS.background} />
+                <Text style={styles.payButtonText}>
+                  {book.price ? `Ir a pagar · ${formatPrice(book.price)}` : 'Ir a pagar'}
+                </Text>
+              </>
+            )}
+          </Pressable>
+        ) : (
+          <Pressable style={styles.readButton} onPress={handleReadPress}>
+            <Text style={styles.readButtonText}>{getReadButtonLabel(progress)}</Text>
+          </Pressable>
+        )}
 
         {/* Publicar vive en su propia pantalla: ahi se edita la ficha tecnica antes de subir a Firebase.
             Si el libro ya está publicado, el botón no tiene sentido y se oculta */}
@@ -217,6 +301,53 @@ const styles = StyleSheet.create({
     color: COLORS.background,
     fontWeight: '700',
     fontSize: FONTSIZE.m,
+  },
+  payButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingVertical: SPACING.s + 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: SPACING.s,
+    marginTop: SPACING.l,
+  },
+  payButtonText: {
+    color: COLORS.background,
+    fontWeight: '700',
+    fontSize: FONTSIZE.m,
+  },
+  paidNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.m,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: SPACING.xs + 2,
+    backgroundColor: COLORS.surface,
+    borderRadius: SPACING.xs,
+    alignSelf: 'flex-start',
+  },
+  paidNoticeText: {
+    color: COLORS.primary,
+    fontSize: FONTSIZE.s,
+    fontWeight: '600',
+  },
+  purchasedNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.m,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: SPACING.xs + 2,
+    backgroundColor: COLORS.success,
+    borderRadius: SPACING.xs,
+    alignSelf: 'flex-start',
+  },
+  purchasedNoticeText: {
+    color: COLORS.successText,
+    fontSize: FONTSIZE.s,
+    fontWeight: '600',
   },
   progressText: {
     color: COLORS.textSecondary,

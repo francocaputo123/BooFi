@@ -88,6 +88,12 @@ export interface EpubParsedBook {
     isPublished?: boolean;
     /* false mientras los capitulos de un libro publicado no se bajaron (vienen con blocks vacios). Si no viene, se asume cargado */
     isContentLoaded?: boolean;
+    /* Si el libro es pago ("paid") o publico ("public") */
+    visibility?: "public" | "paid";
+    /* Precio en ARS si es de pago; null si es gratis */
+    price?: number | null;
+    /* ID del autor que publicó el libro en Firestore */
+    authorId?: string;
 }
 
 /*
