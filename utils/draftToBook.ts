@@ -49,7 +49,7 @@ export const draftToBook = (draft: Draft, chapters: Chapter[], authorName: strin
     title: getDraftTitle(draft),
     author: authorName,
     synopsis: draft.synopsis ?? "",
-    coverUri: null,
+    coverUri: draft.coverUrl ?? null,
     tags: draft.tags ?? [],
     chapters: chapters.map((chapter) => {
       const blocks = contentToBlocks(chapter.content)
