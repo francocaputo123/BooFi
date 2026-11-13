@@ -1,19 +1,22 @@
-import { Text, View, StyleSheet, Pressable} from 'react-native';
+import { Text, View, StyleSheet, useWindowDimensions, FlatList, Pressable} from 'react-native';
+import { ALL_GENRES_LABEL, BOOK_GENRES, CATALOG_LABELS, GRID_COLUMNS, GRID_GAP } from "@/data/catalogData"
+import BookCard from "@/components/BookCard"
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router'; 
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme";
 import GenreChipsIndex from "@/components/ui/GenreChipsIndex";
-import { BOOK_GENRES } from "@/data/catalogData";
 import { useBookSearch } from "@/hooks/useBookSearch";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Card from '@/components/Card'
+// import Card from '@/components/Card'
 
 export default function Index() {
   const router = useRouter(); 
-  const { selectedGenre, setSelectedGenre } = useBookSearch();  
-  
+  const { width: screenWidth } = useWindowDimensions()
+  const cardWidth = (screenWidth - SPACING.l * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS
+  const { selectedGenre, setSelectedGenre, filteredBooksInProgress } = useBookSearch();
+
   useEffect(() => {
     if (selectedGenre) {
       router.push({
@@ -25,6 +28,32 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
+
+      { /* Sección de continuar leyendo */}
+
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>CONTINUAR LEYENDO</Text>
+      </View>
+
+      <View>
+        <FlatList
+            data={filteredBooksInProgress}
+            keyExtractor={(book) => book.id}
+            horizontal
+            renderItem={({ item }) => (
+                <BookCard
+                    book={item}
+                    width={cardWidth}
+                    onPress={() => router.push({ pathname: "/books/Details", params: { id: item.id } })}
+                />
+            )}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+        />
+      </View>
+      {/* <Card>
+        <Text>Hola~</Text>
+      </Card> */}
 
       {/* Tags de exploración por género */}
       <View style={styles.sectionContainer}>
@@ -91,6 +120,9 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  gridRow: {
+    gap: GRID_GAP,
   },
   sectionContainer: {
     flexDirection: "row",

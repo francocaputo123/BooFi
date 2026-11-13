@@ -37,6 +37,8 @@ export const useReadingProgress = (bookId: string) => {
         return result.success ? result.data : undefined
     }, [storedProgress])
 
+    // TODO: crear un estado para comprobar si el usuario termino el libro
+
     const savePosition = useCallback((position: ReadingPosition) => {
         const result = readingProgressSchema.safeParse({
             bookId,

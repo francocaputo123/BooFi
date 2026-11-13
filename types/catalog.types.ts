@@ -12,6 +12,7 @@ export interface CatalogBook {
     coverUrl: string | null
     tags: string[]
     status: BookStatus
+    progress?: number // 0..1, undefined si todavia no empezo el libro
 }
 
 /* Lo que elige el usuario en Explorar. genre null = "Todos" */

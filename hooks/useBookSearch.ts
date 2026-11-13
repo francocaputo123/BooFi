@@ -1,9 +1,14 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useFocusEffect } from "expo-router"
 import { fetchCatalogBooks } from "@/services/catalogService"
 import { filterBooks } from "@/utils/filterBooks"
 import { CATALOG_LABELS } from "@/data/catalogData"
 import { CatalogBook } from "@/types/catalog.types"
+import { filterBooksInProgress } from "@/utils/readingFilterBooks"
+import authStore from "@/store/authStore"
+import readingStore from "@/store/readingStore"
+import { readingProgressSchema } from "@/schema/reading.schema"
+import { buildProgressKey } from "@/utils/readingProgress"
 
 /**
  * Maneja el buscador de Explorar: baja el catalogo y guarda lo que el usuario elige
@@ -15,10 +20,13 @@ import { CatalogBook } from "@/types/catalog.types"
  * @returns refreshBooks : lo pide sin tapar la lista (gesto de arrastrar hacia abajo)
  */
 export const useBookSearch = () => {
+    const userId = authStore((state) => state.public_id)
+    const progressByKey = readingStore((state) => state.progressByKey)
     const [books, setBooks] = useState<CatalogBook[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+    const [isProgressReady, setIsProgressReady] = useState(readingStore.persist.hasHydrated())
 
     const [searchText, setSearchText] = useState("")
     const [selectedGenre, setSelectedGenre] = useState<string | null>(null)
@@ -61,11 +69,37 @@ export const useBookSearch = () => {
         setSelectedGenre(null)
     }, [])
 
+    useEffect(() => {
+        if (readingStore.persist.hasHydrated()) {
+            setIsProgressReady(true)
+            return
+        }
+        return readingStore.persist.onFinishHydration(() => setIsProgressReady(true))
+    }, [])
+
     // useMemo evita volver a filtrar toda la lista cuando cambia algo que no la afecta (ej. isLoading)
     const filteredBooks = useMemo(
         () => filterBooks(books, { searchText, genre: selectedGenre }),
         [books, searchText, selectedGenre]
     )
+
+    // Igual que useReadingProgress, solo cuenta el progreso guardado que pasa la validacion.
+    const filteredBooksInProgress = useMemo(
+        () => {
+            if (!isProgressReady) return []
+
+            const readingBookIds = books.flatMap((book) => {
+                const result = readingProgressSchema.safeParse(
+                    progressByKey[buildProgressKey(userId, book.id)]
+                )
+                return result.success ? [book.id] : []
+            })
+
+            return filterBooksInProgress(books, readingBookIds)
+        },
+        [books, isProgressReady, progressByKey, userId]
+    )
+
 
     const hasActiveFilters = searchText.trim() !== "" || selectedGenre !== null
 
@@ -83,5 +117,6 @@ export const useBookSearch = () => {
         setSelectedGenre,
         clearFilters,
         hasActiveFilters,
+        filteredBooksInProgress,
     }
 }
