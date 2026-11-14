@@ -3,6 +3,7 @@ import { Chapter } from "@/types/chapter.types"
 import { EpubBlock, EpubParsedBook } from "@/types/epub.types"
 import { getDraftTitle } from "@/utils/getDraftTitle"
 import richTextToBlocks from "@/utils/richTextToBlocks"
+import { getChapterTitle } from "@/utils/getChapterTitle"
 
 const PREVIEW_LENGTH = 200
 
@@ -51,15 +52,14 @@ export const draftToBook = (draft: Draft, chapters: Chapter[], authorName: strin
     synopsis: draft.synopsis ?? "",
     coverUri: draft.coverUrl ?? null,
     tags: draft.tags ?? [],
-    chapters: chapters.map((chapter) => {
+    chapters: chapters.map((chapter, index) => {
       const blocks = contentToBlocks(chapter.content)
       return {
         id: chapter.id,
-        title: chapter.title,
+        title: getChapterTitle(chapter, index + 1),
         href: "",
         textPreview: blocksToPreview(blocks),
         blocks,
-        access: chapter.access,
       }
     }),
   }
