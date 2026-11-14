@@ -3,7 +3,13 @@ import { BookTag } from "@/data/publishData"
 
 export type DraftStatus = "in_progress" | "completed"
 
-export interface Draft {
+/** Portada de una historia: el link para mostrarla y la ruta en Storage para poder borrarla */
+export interface DraftCover {
+  coverUrl: string
+  coverPath: string
+}
+
+export interface Draft extends Partial<DraftCover> {
   id: string
   title: string
   status: DraftStatus

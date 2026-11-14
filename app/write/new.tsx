@@ -1,9 +1,10 @@
 import { useState } from "react"
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from "react-native"
 import { Stack } from "expo-router"
-import Ionicons from "@expo/vector-icons/Ionicons"
 import { useCreateDraft } from "@/hooks/useCreateDraft"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
+import CoverPicker from "@/components/CoverPicker"
+import { pickCoverImage } from "@/utils/pickCoverImage"
 
 const SYNOPSIS_MAX_LENGTH = 500
 
@@ -13,11 +14,18 @@ const NewDraftScreen = () => {
 
   const [title, setTitle] = useState("")
   const [synopsis, setSynopsis] = useState("")
+  // Ruta local de la portada elegida: se sube recién cuando la historia existe (al continuar)
+  const [coverUri, setCoverUri] = useState<string | null>(null)
 
-  const handleContinue = () => createAndOpenDraft(title.trim(), synopsis.trim())
+  const handlePickCover = async () => {
+    const pickedUri = await pickCoverImage()
+    if (pickedUri) setCoverUri(pickedUri)
+  }
 
-  // Omitir crea la historia vacía: los datos se completan después desde Configuración
-  const handleSkip = () => createAndOpenDraft("", "")
+  const handleContinue = () => createAndOpenDraft(title.trim(), synopsis.trim(), coverUri)
+
+  // Omitir crea la historia sin título ni descripción: se completan después desde Configuración
+  const handleSkip = () => createAndOpenDraft("", "", coverUri)
 
   return (
     <View style={styles.container}>
@@ -40,15 +48,13 @@ const NewDraftScreen = () => {
         <Text style={styles.heading}>Configurá tu historia</Text>
         <Text style={styles.subheading}>Dale una identidad antes de empezar.</Text>
 
-        {/* TODO: portada de la historia (RF6.4), por ahora deshabilitada */}
-        <View style={[styles.coverCard, styles.coverCardDisabled]}>
-          <View style={styles.coverBox}>
-            <Ionicons name="image-outline" size={26} color={COLORS.primary} />
-          </View>
-          <View style={styles.coverTexts}>
-            <Text style={styles.coverTitle}>Agregar portada</Text>
-            <Text style={styles.coverSubtitle}>Próximamente</Text>
-          </View>
+        <View style={styles.coverSection}>
+          <CoverPicker
+            coverUri={coverUri}
+            isBusy={isCreating}
+            onPick={handlePickCover}
+            onRemove={() => setCoverUri(null)}
+          />
         </View>
 
         <Text style={styles.label}>Título de la historia</Text>
@@ -108,19 +114,7 @@ const styles = StyleSheet.create({
   },
   heading: { fontSize: FONTSIZE.xl, fontWeight: "bold", color: COLORS.text, marginTop: SPACING.l },
   subheading: { fontSize: FONTSIZE.s, color: COLORS.textSecondary, marginTop: SPACING.xs },
-  coverCard: {
-    flexDirection: "row", gap: SPACING.m, alignItems: "center", backgroundColor: COLORS.surface,
-    borderColor: COLORS.border, borderWidth: 1, borderRadius: 12, padding: SPACING.m,
-    marginTop: SPACING.l,
-  },
-  coverCardDisabled: { opacity: 0.5 },
-  coverBox: {
-    width: 72, height: 96, borderRadius: 8, backgroundColor: COLORS.background,
-    alignItems: "center", justifyContent: "center",
-  },
-  coverTexts: { flex: 1 },
-  coverTitle: { fontSize: FONTSIZE.m, fontWeight: "600", color: COLORS.text },
-  coverSubtitle: { fontSize: FONTSIZE.xs, color: COLORS.textSecondary },
+  coverSection: { marginTop: SPACING.l },
   label: { fontSize: FONTSIZE.s, color: COLORS.text, marginTop: SPACING.l, marginBottom: SPACING.s },
   input: {
     fontSize: FONTSIZE.m, color: COLORS.text, backgroundColor: COLORS.surface,

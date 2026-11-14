@@ -1,10 +1,13 @@
 import { View, Text, Pressable, StyleSheet } from "react-native"
 import Ionicons from "@expo/vector-icons/Ionicons"
 import { Chapter } from "@/types/chapter.types"
+import { getChapterTitle } from "@/utils/getChapterTitle"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
 
 interface ChapterCardProps {
   chapter: Chapter
+  /* Posición en la historia (empieza en 1), para el nombre de respaldo "Capítulo N" */
+  position: number
   isFirst: boolean
   isLast: boolean
   isCurrent?: boolean
@@ -15,10 +18,10 @@ interface ChapterCardProps {
 }
 
 /** Fila de un capítulo con acceso al editor y botones para reordenar o borrar */
-const ChapterCard = ({ chapter, isFirst, isLast, isCurrent, onPress, onMoveUp, onMoveDown, onDelete }: ChapterCardProps) => (
+const ChapterCard = ({ chapter, position, isFirst, isLast, isCurrent, onPress, onMoveUp, onMoveDown, onDelete }: ChapterCardProps) => (
   <View style={[styles.card, isCurrent && styles.cardCurrent]}>
     <Pressable style={styles.titleArea} onPress={onPress}>
-      <Text style={styles.title}>{chapter.title}</Text>
+      <Text style={styles.title} numberOfLines={1}>{getChapterTitle(chapter, position)}</Text>
     </Pressable>
     <View style={styles.actions}>
       <Pressable onPress={onMoveUp} disabled={isFirst}>

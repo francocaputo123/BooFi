@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Text, ActivityIndicator, StyleSheet } from "react-native"
-import { useLocalSearchParams, useRouter, Href } from "expo-router"
+import { useLocalSearchParams, useRouter } from "expo-router"
 import authStore from "@/store/authStore"
 import { createChapter, listChapters } from "@/services/chapterService"
 import { COLORS, SPACING } from "@/constants/theme"
@@ -25,8 +25,8 @@ const DraftEntryScreen = () => {
         const lastChapter = chapters[chapters.length - 1]
         const chapterId = lastChapter
           ? lastChapter.id
-          : await createChapter(uid, draftId, "Capítulo 1", 1)
-        router.replace(`/write/${draftId}/${chapterId}` as Href)
+          : await createChapter(uid, draftId, "", 1)
+        router.replace({ pathname: "/write/[draftId]/[chapterId]", params: { draftId, chapterId } })
       } catch (error) {
         setErrorMessage((error as Error).message)
       }

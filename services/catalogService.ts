@@ -1,4 +1,4 @@
-import { collection, DocumentData, getDocs, limit, orderBy, query, QueryDocumentSnapshot } from "firebase/firestore"
+import { collection, DocumentData, getDocs, limit, orderBy, query, QueryDocumentSnapshot, where } from "firebase/firestore"
 import { db } from "@/config/firebaseConfig"
 import { CatalogBook } from "@/types/catalog.types"
 import { BOOKS_COLLECTION, CATALOG_FETCH_LIMIT, CATALOG_LABELS } from "@/data/catalogData"
@@ -42,6 +42,35 @@ export const fetchCatalogBooks = async (): Promise<CatalogBook[]> => {
         return snapshot.docs.map(mapBookDocument)
     } catch (error) {
         console.error("[catalogService] No se pudo leer el catalogo:", error)
+        throw new Error(CATALOG_LABELS.LOAD_ERROR)
+    }
+}
+
+/*
+ * Fecha ISO de publicación de un documento, o "" si no la trae.
+ * Sirve para ordenar los libros de un autor sin pedir un índice compuesto a Firestore.
+ */
+const getPublishedAt = (snapshot: QueryDocumentSnapshot<DocumentData>): string => {
+    const publishedAt = snapshot.data().publishedAt
+    return typeof publishedAt === "string" ? publishedAt : ""
+}
+
+/**
+ * Baja los libros que publicó un autor, los mas nuevos primero.
+ * NOTE: se filtra por un solo campo (authorId) y se ordena aca: ordenar en Firestore pediria un indice compuesto.
+ * @param authorId : uid de quien publico
+ * @returns CatalogBook[] : libros del autor
+ */
+export const fetchAuthorBooks = async (authorId: string): Promise<CatalogBook[]> => {
+    try {
+        const snapshot = await getDocs(
+            query(collection(db, BOOKS_COLLECTION), where("authorId", "==", authorId))
+        )
+        return [...snapshot.docs]
+            .sort((first, second) => getPublishedAt(second).localeCompare(getPublishedAt(first)))
+            .map(mapBookDocument)
+    } catch (error) {
+        console.error("[catalogService] No se pudieron leer los libros del autor:", error)
         throw new Error(CATALOG_LABELS.LOAD_ERROR)
     }
 }

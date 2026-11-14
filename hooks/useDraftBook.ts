@@ -4,7 +4,7 @@ import bookStore from "@/store/bookStore"
 import { useAuthorName } from "@/hooks/useAuthorName"
 import { getDraft } from "@/services/draftService"
 import { listChapters } from "@/services/chapterService"
-import { draftToBook } from "@/utils/draftToBook"
+import { draftToBook, contentToBlocks } from "@/utils/draftToBook"
 import { getMissingPublishFields } from "@/utils/getMissingPublishFields"
 
 /**
@@ -36,8 +36,8 @@ export const useDraftBook = (draftId: string) => {
         )
       }
     }
-    // Los capítulos vacíos no se incluyen: no hay nada que leer
-    const writtenChapters = chapters.filter((chapter) => chapter.content.trim() !== "")
+    // Los capítulos sin texto no se incluyen: no hay nada que leer
+    const writtenChapters = chapters.filter((chapter) => contentToBlocks(chapter.content).length > 0)
     if (writtenChapters.length === 0) {
       throw new Error("Escribí al menos un capítulo antes de continuar")
     }

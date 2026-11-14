@@ -30,29 +30,30 @@ export const useChapterEditor = (draftId: string, chapterId: string) => {
     currentTitle !== lastSaved.current.title || currentContent !== lastSaved.current.content
 
 /** Guarda título y contenido en Firestore y actualiza el estado del guardado. Devuelve true si salió bien */
-const saveChanges = async (nextTitle: string, nextContent: string): Promise<boolean> => {
-  try {
-    setSaveStatus("saving")
-    await updateChapter(uid, draftId, chapterId, { title: nextTitle, content: nextContent })
-    lastSaved.current = { title: nextTitle, content: nextContent }
-    setSaveStatus("saved")
-    return true
-  } catch {
-    setSaveStatus("error")
-    return false
+  const saveChanges = async (nextTitle: string, nextContent: string): Promise<boolean> => {
+    try {
+      setSaveStatus("saving")
+      await updateChapter(uid, draftId, chapterId, { title: nextTitle, content: nextContent })
+      lastSaved.current = { title: nextTitle, content: nextContent }
+      setSaveStatus("saved")
+      return true
+    } catch {
+      setSaveStatus("error")
+      return false
+    }
   }
-}
 
-/** Guarda lo pendiente ya mismo. Devuelve true si no había nada que guardar o si se guardó bien */
-const saveNow = async (): Promise<boolean> => {
-  const { title: pendingTitle, content: pendingContent } = latest.current
-  if (!hasUnsavedChanges(pendingTitle, pendingContent)) return true
-  return saveChanges(pendingTitle, pendingContent)
-}
+  /** Guarda lo pendiente ya mismo. Devuelve true si no había nada que guardar o si se guardó bien */
+  const saveNow = async (): Promise<boolean> => {
+    const { title: pendingTitle, content: pendingContent } = latest.current
+    if (!hasUnsavedChanges(pendingTitle, pendingContent)) return true
+    return saveChanges(pendingTitle, pendingContent)
+  }
 
   useEffect(() => {
     const loadChapter = async () => {
       try {
+        setIsLoading(true)
         const chapter = await getChapter(uid, draftId, chapterId)
         lastSaved.current = { title: chapter.title, content: chapter.content }
         setTitle(chapter.title)

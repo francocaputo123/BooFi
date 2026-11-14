@@ -5,10 +5,11 @@ import authStore from "@/store/authStore"
 import { getDraft, updateDraft } from "@/services/draftService"
 import { DraftStatus } from "@/types/draft.types"
 import { AVAILABLE_TAGS, BookTag } from "@/data/publishData"
-import { STATUS_LABELS, STATUS_OPTIONS } from "@/constants/draftOptions"
+import { STATUS_LABELS, STATUS_OPTIONS, UNTITLED_DRAFT_LABEL } from "@/constants/draftOptions"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
-import { UNTITLED_DRAFT_LABEL } from "@/constants/draftOptions"
 import ChipOption from "@/components/ChipOption"
+import CoverPicker from "@/components/CoverPicker"
+import { useDraftCover } from "@/hooks/useDraftCover"
 
 /** Descarta valores que ya no existan en AVAILABLE_TAGS */
 const isBookTag = (value: unknown): value is BookTag =>
@@ -18,6 +19,8 @@ const DraftSettingsScreen = () => {
   const { draftId } = useLocalSearchParams() as { draftId: string }
   const uid = authStore((state) => state.public_id)
   const router = useRouter()
+  const { cover, setCover, isBusy: isCoverBusy, errorMessage: coverError, pickCover, removeCover } =
+    useDraftCover(draftId)
 
   const [title, setTitle] = useState("")
   const [synopsis, setSynopsis] = useState("")
@@ -36,6 +39,9 @@ const DraftSettingsScreen = () => {
         setSynopsis(draft.synopsis ?? "")
         setTags((draft.tags ?? []).filter(isBookTag))
         setStatus(draft.status)
+        if (draft.coverUrl && draft.coverPath) {
+          setCover({ coverUrl: draft.coverUrl, coverPath: draft.coverPath })
+        }
       } catch (error) {
         setLoadError((error as Error).message)
       } finally {
@@ -43,7 +49,7 @@ const DraftSettingsScreen = () => {
       }
     }
     loadDraft()
-  }, [uid, draftId])
+  }, [uid, draftId, setCover])
 
   const toggleTag = (tag: BookTag) => {
     setTags((current) =>
@@ -78,6 +84,15 @@ const DraftSettingsScreen = () => {
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <Text style={styles.label}>Portada</Text>
+      <CoverPicker
+        coverUri={cover?.coverUrl ?? null}
+        isBusy={isCoverBusy}
+        onPick={pickCover}
+        onRemove={removeCover}
+      />
+      {coverError && <Text style={styles.errorText}>{coverError}</Text>}
+
       <Text style={styles.label}>Título</Text>
       <TextInput
         style={styles.input}

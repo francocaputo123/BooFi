@@ -32,7 +32,7 @@ export const useChapterList = (draftId: string) => {
     try {
       const lastChapter = chapters[chapters.length - 1]
       const nextOrder = lastChapter ? lastChapter.order + 1 : 1
-      const chapterId = await createChapter(uid, draftId, `Capítulo ${nextOrder}`, nextOrder)
+      const chapterId = await createChapter(uid, draftId, "", nextOrder)
       await loadChapters()
       return chapterId
     } catch (error) {
