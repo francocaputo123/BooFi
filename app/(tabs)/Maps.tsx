@@ -1,128 +1,234 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react'
 import {
     ActivityIndicator,
+    FlatList,
     Linking,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
     View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView from 'react-native-maps';
-import { useUserLocation } from '../../utils/useUserLocation';
-import { COLORS } from '../../constants/theme';
+} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import MapView, { Marker } from 'react-native-maps'
+import { useUserLocation } from '@/utils/useUserLocation'
+import { useNearbyLibraries } from '@/hooks/useNearbyLibraries'
+import LibraryCard from '@/components/LibraryCard'
+import { COLORS } from '@/constants/theme'
+import { DEFAULT_MAP_FILTER_ID, LIBRARY_LABELS, MAP_FILTERS } from '@/data/libraryData'
+import { Library } from '@/types/library.types'
 
-// Chips de filtro (por ahora solo se marcan; el filtrado real va en el 9.2)
-const FILTERS = ['Todos', '< 1 km', '< 3 km', '< 5 km', 'Abiertas'];
+// Zoom al tocar una librería (cuanto más chico el número, más cerca)
+const FOCUS_DELTA = 0.01
 
 // Botón simple con el estilo de la app
-function ActionButton({ label, onPress }: { label: string; onPress: () => void }) {
-    return (
-        <Pressable style={styles.button} onPress={onPress}>
-            <Text style={styles.buttonText}>{label}</Text>
-        </Pressable>
-    );
-}
+const ActionButton = ({ label, onPress }: { label: string; onPress: () => void }) => (
+    <Pressable style={styles.button} onPress={onPress}>
+        <Text style={styles.buttonText}>{label}</Text>
+    </Pressable>
+)
 
-export default function MapScreen() {
-    const { status, coords, city, retry } = useUserLocation();
-    const [selectedFilter, setSelectedFilter] = useState('Todos');
+const MapScreen = () => {
+    const { status, coords, city, retry } = useUserLocation()
+    const { libraries, isLoading, isFallback, errorMessage, errorDetail, retry: retryLibraries } = useNearbyLibraries(coords)
+    const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_MAP_FILTER_ID)
+    const [selectedLibraryId, setSelectedLibraryId] = useState<string | null>(null)
+    const mapRef = useRef<MapView>(null)
+
+    // La lista y los pines usan siempre la misma lista filtrada, así nunca se desincronizan.
+    // Las librerías ya vienen ordenadas por cercanía desde el servicio.
+    const visibleLibraries = useMemo(() => {
+        const maxMeters = MAP_FILTERS.find((filter) => filter.id === selectedFilterId)?.maxMeters ?? null
+        if (maxMeters === null) {
+            return libraries
+        }
+        return libraries.filter((library) => library.distanceMeters <= maxMeters)
+    }, [libraries, selectedFilterId])
+
+    // Marca la librería y centra el mapa en ella
+    const handleSelectLibrary = (library: Library) => {
+        setSelectedLibraryId(library.id)
+        mapRef.current?.animateToRegion(
+            {
+                latitude: library.latitude,
+                longitude: library.longitude,
+                latitudeDelta: FOCUS_DELTA,
+                longitudeDelta: FOCUS_DELTA,
+            },
+            500
+        )
+    }
 
     // Lo que se muestra dentro del recuadro del mapa según el estado
     const renderMap = () => {
         if (status === 'loading') {
             return (
-            <View style={styles.mapMessage}>
-                <ActivityIndicator color={COLORS.accent} />
-                <Text style={styles.mapMessageText}>Buscando tu ubicación...</Text>
-            </View>
-        );
+                <View style={styles.mapMessage}>
+                    <ActivityIndicator color={COLORS.accent} />
+                    <Text style={styles.mapMessageText}>Buscando tu ubicación...</Text>
+                </View>
+            )
+        }
+
+        if (status === 'denied') {
+            return (
+                <View style={styles.mapMessage}>
+                    <Text style={styles.mapMessageText}>
+                        Necesitamos tu permiso de ubicación para mostrarte en el mapa.
+                    </Text>
+                    <ActionButton label="Abrir ajustes" onPress={() => Linking.openSettings()} />
+                    <ActionButton label="Reintentar" onPress={retry} />
+                </View>
+            )
+        }
+
+        if (status === 'error' || !coords) {
+            return (
+                <View style={styles.mapMessage}>
+                    <Text style={styles.mapMessageText}>No pudimos obtener tu ubicación.</Text>
+                    <ActionButton label="Reintentar" onPress={retry} />
+                </View>
+            )
+        }
+
+        // Todo bien: mapa centrado en el usuario, con un pin por cada librería visible
+        return (
+            <MapView
+                ref={mapRef}
+                style={StyleSheet.absoluteFill}
+                showsUserLocation
+                initialRegion={{
+                    latitude: coords.latitude,
+                    longitude: coords.longitude,
+                    latitudeDelta: 0.02,
+                    longitudeDelta: 0.02,
+                }}
+            >
+                {visibleLibraries.map((library) => (
+                    <Marker
+                        key={library.id}
+                        coordinate={{ latitude: library.latitude, longitude: library.longitude }}
+                        title={library.name}
+                        description={library.address ?? undefined}
+                        pinColor={library.id === selectedLibraryId ? COLORS.accent : COLORS.primary}
+                        onPress={() => setSelectedLibraryId(library.id)}
+                    />
+                ))}
+            </MapView>
+        )
     }
 
-    if (status === 'denied') {
+    // Mensaje que ocupa el lugar de la lista cuando no hay nada para listar
+    const renderListEmpty = () => {
+        if (status !== 'granted') {
+            return <Text style={styles.emptyText}>{LIBRARY_LABELS.NO_LOCATION}</Text>
+        }
+
+        if (isLoading) {
+            return (
+                <View style={styles.emptyBox}>
+                    <ActivityIndicator color={COLORS.accent} />
+                    <Text style={styles.emptyText}>{LIBRARY_LABELS.SEARCHING}</Text>
+                </View>
+            )
+        }
+
+        if (errorMessage) {
+            return (
+                <View style={styles.emptyBox}>
+                    <Text style={styles.emptyText}>{errorMessage}</Text>
+                    {errorDetail && <Text style={styles.errorDetail}>{errorDetail}</Text>}
+                    <ActionButton label={LIBRARY_LABELS.RETRY} onPress={retryLibraries} />
+                </View>
+            )
+        }
+
+        // Hay librerías pero el filtro de distancia las dejó afuera, o directamente no hay ninguna
         return (
-            <View style={styles.mapMessage}>
-            <Text style={styles.mapMessageText}>
-                Necesitamos tu permiso de ubicación para mostrarte en el mapa.
+            <Text style={styles.emptyText}>
+                {libraries.length > 0 ? LIBRARY_LABELS.EMPTY_FILTERED : LIBRARY_LABELS.EMPTY_ALL}
             </Text>
-                <ActionButton label="Abrir ajustes" onPress={() => Linking.openSettings()} />
-                <ActionButton label="Reintentar" onPress={retry} />
-            </View>
-        );
+        )
     }
 
-    if (status === 'error' || !coords) {
-        return (
-            <View style={styles.mapMessage}>
-                <Text style={styles.mapMessageText}>No pudimos obtener tu ubicación.</Text>
-                <ActionButton label="Reintentar" onPress={retry} />
-            </View>
-        );
-    }
-
-    // Todo bien: mapa centrado en el usuario
-    return (
-        <MapView
-            style={StyleSheet.absoluteFill}
-            showsUserLocation
-            initialRegion={{
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-                latitudeDelta: 0.02,
-                longitudeDelta: 0.02,
-            }}
-        />
-        );
-    };
+    const resultsText = isLoading
+        ? 'Buscando...'
+        : `${visibleLibraries.length} ${visibleLibraries.length === 1 ? 'resultado' : 'resultados'}`
 
     return (
         <SafeAreaView style={styles.screen} edges={['top']}>
-        {/* Encabezado: título + ciudad */}
-        <View style={styles.header}>
-            <Text style={styles.title}>Mapa</Text>
-        <View style={styles.cityPill}>
-            <View style={styles.cityDot} />
-            <Text style={styles.cityText}>{city ?? 'Tu ubicación'}</Text>
-        </View>
-        </View>
+            {/* Encabezado: título + ciudad */}
+            <View style={styles.header}>
+                <Text style={styles.title}>Mapa</Text>
+                <View style={styles.cityPill}>
+                    <View style={styles.cityDot} />
+                    <Text style={styles.cityText}>{city ?? 'Tu ubicación'}</Text>
+                </View>
+            </View>
 
             {/* Mapa */}
-        <View style={styles.mapBox}>{renderMap()}</View>
+            <View style={styles.mapBox}>{renderMap()}</View>
 
-        {/* Filtros */}
-        <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.chipsScroll}
-            contentContainerStyle={styles.chipsContent}
-        >
-        {FILTERS.map((filter) => {
-            const selected = filter === selectedFilter;
-            return (
-                <Pressable
-                key={filter}
-                onPress={() => setSelectedFilter(filter)}
-                style={[styles.chip, selected && styles.chipSelected]}
-                >
-                <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                    {filter}
-                    </Text>
-                </Pressable>
-            );
-            })}
-        </ScrollView>
+            {/* Filtros por distancia */}
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.chipsScroll}
+                contentContainerStyle={styles.chipsContent}
+            >
+                {MAP_FILTERS.map((filter) => {
+                    const selected = filter.id === selectedFilterId
+                    return (
+                        <Pressable
+                            key={filter.id}
+                            onPress={() => setSelectedFilterId(filter.id)}
+                            style={[styles.chip, selected && styles.chipSelected]}
+                        >
+                            <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                                {filter.label}
+                            </Text>
+                        </Pressable>
+                    )
+                })}
+            </ScrollView>
 
-        {/* Lista de librerías (se llena en el ticket 9.2) */}
-        <View style={styles.listHeader}>
-            <Text style={styles.sectionLabel}>LIBRERÍAS CERCANAS</Text>
-            <Text style={styles.count}>0 resultados</Text>
-        </View>
-        <View style={styles.empty}>
-            <Text style={styles.emptyText}>Todavía no hay librerías para mostrar.</Text>
+            {/* Lista de librerías cercanas, de la más cerca a la más lejos */}
+            <View style={styles.listHeader}>
+                <Text style={styles.sectionLabel}>{LIBRARY_LABELS.SECTION_TITLE}</Text>
+                <Text style={styles.count}>{resultsText}</Text>
             </View>
+            {/* Aviso: la lista que se ve es la guardada en la app, no la de OpenStreetMap */}
+            {isFallback && (
+                <View style={styles.fallbackNotice}>
+                    <Text style={styles.fallbackText}>{LIBRARY_LABELS.FALLBACK_NOTICE}</Text>
+                    <Pressable onPress={retryLibraries}>
+                        <Text style={styles.fallbackRetry}>{LIBRARY_LABELS.RETRY}</Text>
+                    </Pressable>
+                </View>
+            )}
+            <FlatList
+                data={visibleLibraries}
+                keyExtractor={(library) => library.id}
+                style={styles.list}
+                contentContainerStyle={styles.listContent}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                renderItem={({ item }) => (
+                    <LibraryCard
+                        library={item}
+                        selected={item.id === selectedLibraryId}
+                        onPress={() => handleSelectLibrary(item)}
+                    />
+                )}
+                ListEmptyComponent={renderListEmpty}
+                // NOTE: OpenStreetMap pide mostrar de dónde salen los datos (licencia ODbL)
+                ListFooterComponent={
+                    visibleLibraries.length > 0 && !isFallback ? (
+                        <Text style={styles.attribution}>{LIBRARY_LABELS.ATTRIBUTION}</Text>
+                    ) : null
+                }
+            />
         </SafeAreaView>
-    );
+    )
 }
 
 const styles = StyleSheet.create({
@@ -185,10 +291,35 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         marginTop: 18,
+        marginBottom: 8,
     },
     sectionLabel: { color: COLORS.textSecondary, fontSize: 11, letterSpacing: 1 },
     count: { color: COLORS.textSecondary, fontSize: 11 },
 
-    empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    emptyText: { color: COLORS.textSecondary, fontSize: 14 },
-});
+    list: { flex: 1 },
+    listContent: { paddingHorizontal: 16, paddingBottom: 16, flexGrow: 1 },
+    separator: { height: 8 },
+
+    emptyBox: { alignItems: 'center', gap: 10 },
+    emptyText: { color: COLORS.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 16 },
+    fallbackNotice: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        marginHorizontal: 16,
+        marginBottom: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        backgroundColor: COLORS.surface,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    fallbackText: { flex: 1, color: COLORS.textSecondary, fontSize: 11 },
+    fallbackRetry: { color: COLORS.accent, fontSize: 12, fontWeight: '700' },
+    errorDetail: { color: COLORS.textSecondary, fontSize: 10, textAlign: 'center', opacity: 0.7 },
+    attribution: { color: COLORS.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 12 },
+})
+
+export default MapScreen
