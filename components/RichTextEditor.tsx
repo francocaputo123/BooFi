@@ -13,6 +13,8 @@ type RichTextEditorProps = {
   initialContent: string
   /* Se llama en cada cambio con el JSON como texto, o "" si el capítulo quedó vacío */
   onChange: (content: string) => void
+  /* Se dibuja entre la barra de herramientas y el área de escritura (ej. el título del capítulo) */
+  children?: React.ReactNode
 }
 
 type ToolButtonProps = {
@@ -86,7 +88,7 @@ const ToolButton = ({ icon, isActive = false, isDisabled = false, onPress }: Too
  * @param RichTextEditorProps props : contenido inicial y función que recibe los cambios
  * @returns JSX.Element
  */
-const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
+const RichTextEditor = ({ initialContent, onChange, children }: RichTextEditorProps) => {
   // useMemo: el contenido inicial se calcula una sola vez, no en cada render
   const startContent = useMemo(() => getEditorInitialContent(initialContent), [])
 
@@ -118,6 +120,7 @@ const RichTextEditor = ({ initialContent, onChange }: RichTextEditorProps) => {
           <ToolButton icon="redo" isDisabled={!editorState.canRedo} onPress={() => editor.redo()} />
         </ScrollView>
       </View>
+      {children}
       <View style={styles.editor}>
         <RichText editor={editor} />
       </View>
