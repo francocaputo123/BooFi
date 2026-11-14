@@ -61,6 +61,32 @@ export default function Index() {
         </>
       )}
 
+      {/* Últimas publicaciones */}
+      {latestBooks.length > 0 && (
+        <>
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>ÚLTIMAS PUBLICACIONES</Text>
+            <Pressable onPress={() => router.push('/Explore')}>
+              <Text style={{ color: COLORS.primary, fontSize: FONTSIZE.m }}>Ver todos</Text>
+            </Pressable>
+          </View>
+          <FlatList
+            data={latestBooks}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.booksList}
+            renderItem={({ item }) => (
+              <BookCard
+                book={item}
+                width={HOME_CARD_WIDTH}
+                onPress={() => router.push({ pathname: "/books/Details", params: { id: item.id } })}
+              />
+            )}
+          />
+        </>
+      )}
+
       {/* Tags de exploración por género */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>EXPLORAR POR GÉNERO</Text>
