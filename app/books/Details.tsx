@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { EpubDetailScreenParams } from '../../types/epub';
-import { SYNOPSIS_MOCK, CATEGORIES_MOCK, COVER_MOCK } from '../../data/epubMock';
+import { COVER_MOCK } from '../../data/epubMock';
 import { READER_LABELS } from '../../data/readingData';
 import { COLORS, SPACING, FONTSIZE } from '../../constants/theme';
 import StatusMessage from '../../components/ui/StatusMessage';
@@ -113,7 +113,7 @@ const EpubDetailScreen = () => {
   }
 
   const { title, chapters: bookChapters, synopsis, coverUri } = book;
-  const categories = book.tags?.length ? book.tags : CATEGORIES_MOCK;
+  const categories = book.tags ?? [];
   // En un libro publicado el autor es el que firmó al publicar; si no, el usuario logueado
   const authorName = book.isPublished ? book.author : loggedUserName;
 
@@ -132,15 +132,20 @@ const EpubDetailScreen = () => {
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.author}>{authorName}</Text>
 
-        <View style={styles.categoriesRow}>
-          {categories.map((category) => (
-            <Text key={category} style={styles.categoryTag}>{category}</Text>
-          ))}
-        </View>
+        {categories.length > 0 && (
+          <View style={styles.categoriesRow}>
+            {categories.map((category) => (
+              <Text key={category} style={styles.categoryTag}>{category}</Text>
+            ))}
+          </View>
+        )}
 
-        <Text style={styles.sectionTitle}>SINOPSIS</Text>
-        <Text style={styles.synopsisText}>{synopsis || SYNOPSIS_MOCK}</Text>
-
+        {synopsis ? (
+          <>
+            <Text style={styles.sectionTitle}>SINOPSIS</Text>
+            <Text style={styles.synopsisText}>{synopsis}</Text>
+          </>
+        ) : null}
         {isPaid && !hasAccess && (
           <View style={styles.paidNotice}>
             <Ionicons name="pricetag-outline" size={16} color={COLORS.primary} />
