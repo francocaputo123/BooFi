@@ -38,18 +38,21 @@ const RootLayout = () => {
                     ),
                 }} />
             <Tabs.Screen
-                name="ProfileScreen"
+                name="profile"
                 options={{
-                    title : 'Perfil',
-                    tabBarIcon: ({ color, focused}) => (
-                        <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} color={color} size={24} />
+                    title: 'Perfil',
+                    headerShown: false, 
+                    tabBarIcon: ({ color, focused }) => (
+                    <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} color={color} size={24} />
                     ),
-                }} />
+                }}
+            />
             <Tabs.Screen
                 name="Maps"
                 options={{
                     href : null
-                }} />
+                }}
+            />
         </Tabs>
     )
 }

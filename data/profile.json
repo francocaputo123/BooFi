@@ -1,0 +1,46 @@
+{
+    "top" : [
+        {
+            "label" : "Nombre de usuario",
+            "text" : "username",
+            "icon" : "person",
+            "key" : "username",
+            "type" : "text",
+            "action" : "updateUsername"
+        },
+        {
+            "label" : "Email",
+            "text" : "email",
+            "icon" : "mail",
+            "key" : "email",
+            "type" : "text",
+            "action" : "updateEmail"
+        },
+        {
+            "label" : "Biografia",
+            "text" : "Cambiar biografia",
+            "icon" : "book",
+            "key" : "bio",
+            "type" : "button",
+            "action" : "updateBio"
+        },
+        {
+            "label" : "Direccion",
+            "text" : "direction",
+            "icon" : "location",
+            "key" : null,
+            "type" : "text",
+            "action" : "updateDirection"
+        }
+    ],
+
+    "bottom" : [
+        {
+            "label" : "Contraseña",
+            "text" : "Cambiar contraseña",
+            "icon" : "lock-closed",
+            "type" : "text",
+            "action" : "updatePassword"
+        }
+    ]
+}

@@ -1,6 +1,8 @@
 import { doc, getDoc, setDoc } from "firebase/firestore"
-import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
+import * as FileSystem from "expo-file-system/legacy"
 import { db, storage } from "@/config/firebaseConfig"
+import { File, Paths } from 'expo-file-system';
 import {
     PublishBookParams,
     PublishBookResult,
@@ -14,6 +16,7 @@ import {
     CHAPTER_IMAGE_ATTEMPTS,
     JPEG_CONTENT_TYPE,
     MAX_CHAPTER_IMAGE_BYTES,
+    PRICE_CURRENCY,
     UPLOAD_BATCH_SIZE,
 } from "@/data/publishData"
 import { buildPublishedBookId } from "@/utils/buildBookId"
@@ -21,19 +24,47 @@ import { normalizeTitle } from "@/utils/normalizeTitle"
 import { buildChapterImagePath, buildChapterPath, buildCoverPath } from "@/utils/storagePaths"
 import { handleFirebaseError } from "@/utils/handleFirebaseError"
 import { prepareImageForUpload } from "@/utils/prepareImage"
+import { DEFAULT_CHAPTER_ACCESS } from "@/constants/chapterAccess"
+
+/*
+ * Sube una imagen JPEG que viene en base64.
+ * No se usa uploadString porque en React Native falla al crear el Blob desde un ArrayBuffer.
+ * 1) Guarda la imagen en un archivo temporal del celu
+ * 2) Hace fetch de ese archivo para obtener un Blob (React Native si soporta esto)
+ * 3) Sube el Blob con uploadBytes
+ * 4) Borra el archivo temporal, salga bien o mal
+ */
+export const uploadBase64Jpeg = async (storageRef: ReturnType<typeof ref>, base64: string) => {
+    const tempUri = `${FileSystem.cacheDirectory}upload-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.jpg`
+
+    try {
+        await FileSystem.writeAsStringAsync(tempUri, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+        })
+        const response = await fetch(tempUri)
+        const blob = await response.blob()
+        await uploadBytes(storageRef, blob, { contentType: JPEG_CONTENT_TYPE })
+    } finally {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true })
+    }
+}
 
 /* Sube un capitulo como archivo JSON (sin espacios de mas, para que pese lo menos posible) */
 const uploadChapter = async (bookId: string, chapter: PublishedChapter) => {
     const chapterRef = ref(storage, buildChapterPath(bookId, chapter.index))
-    await uploadString(chapterRef, JSON.stringify(chapter), "raw", {
+    // Un Blob armado desde un string si esta soportado en React Native
+    const jsonBlob = new Blob([JSON.stringify(chapter)], { type: CHAPTER_CONTENT_TYPE })
+    await uploadBytes(chapterRef, jsonBlob, {
         contentType: CHAPTER_CONTENT_TYPE,
     })
 }
 
 /*
- * Prepara y sube una imagen de capitulo: la achica a JPEG, la sube a Storage y devuelve su URL.
- * La ruta se anota en uploadedPaths ANTES de subir, asi si falla a mitad de camino tambien se limpia.
- * Devuelve null si la imagen no se pudo preparar: en ese caso el bloque se descarta.
+- Prepara y sube una imagen de capitulo: la achica a JPEG, la sube a Storage y devuelve su URL.
+- La ruta se anota en uploadedPaths ANTES de subir, asi si falla a mitad de camino tambien se limpia.
+- Devuelve null si la imagen no se pudo preparar: en ese caso el bloque se descarta.
  */
 const uploadChapterImage = async (
     bookId: string,
@@ -52,16 +83,14 @@ const uploadChapterImage = async (
     const imagePath = buildChapterImagePath(bookId, chapterIndex, imageIndex)
     uploadedPaths.push(imagePath)
     const imageRef = ref(storage, imagePath)
-    await uploadString(imageRef, base64, "base64", {
-        contentType: JPEG_CONTENT_TYPE,
-    })
+    await uploadBase64Jpeg(imageRef, base64)
     return await getDownloadURL(imageRef)
 }
 
 /*
- * Recorre los bloques de un capitulo y sube cada imagen a Storage.
- * Devuelve los bloques con "imageUrl" apuntando a Storage y sin "imageUri" (que era local).
- * Los bloques de imagen que fallan al prepararse o subirse se descartan.
+- Recorre los bloques de un capitulo y sube cada imagen a Storage.
+- Devuelve los bloques con "imageUrl" apuntando a Storage y sin "imageUri" (que era local).
+- Los bloques de imagen que fallan al prepararse o subirse se descartan.
  */
 const uploadChapterImages = async (
     bookId: string,
@@ -99,9 +128,9 @@ const uploadChapterImages = async (
 }
 
 /*
- * Arma los capitulos listos para publicar: sube sus imagenes a Storage y reemplaza
- * las rutas locales por URLs. Se hace ANTES de subir los JSON porque cada JSON
- * necesita las URLs ya conocidas dentro de sus bloques.
+- Arma los capitulos listos para publicar: sube sus imagenes a Storage y reemplaza
+- las rutas locales por URLs. Se hace ANTES de subir los JSON porque cada JSON
+- necesita las URLs ya conocidas dentro de sus bloques.
  */
 const prepareChaptersForUpload = async (
     bookId: string,
@@ -125,15 +154,17 @@ const deleteUploadedFiles = async (paths: string[]) => {
 }
 
 /**
- * Publica un libro: sube las imagenes de los capitulos y la portada a Cloud Storage,
- * despues los JSON de cada capitulo (que ya llevan las URLs de sus imagenes) y,
- * recien al final, escribe el documento del libro en Firestore.
- * Si algo falla en el medio, borra lo que ya se habia subido y tira el error.
- * @param params : datos del libro, ver PublishBookParams
- * @returns PublishBookResult : "published" o "duplicate" (con el id del libro)
+- Publica un libro: sube las imagenes de los capitulos y la portada a Cloud Storage,
+- despues los JSON de cada capitulo (que ya llevan las URLs de sus imagenes) y,
+- recien al final, escribe el documento del libro en Firestore.
+- Si algo falla en el medio, borra lo que ya se habia subido y tira el error.
+- 
+@param params : datos del libro, ver PublishBookParams
+- 
+@returns PublishBookResult : "published" o "duplicate" (con el id del libro)
  */
 export const publishBook = async (params: PublishBookParams): Promise<PublishBookResult> => {
-    const { authorId, authorName, book, synopsis, tags, coverJpegBase64, visibility } = params
+    const { authorId, authorName, book, synopsis, tags, coverJpegBase64, visibility, price } = params
     const bookId = buildPublishedBookId(authorId, book.title)
     const uploadedPaths: string[] = []
 
@@ -167,14 +198,12 @@ export const publishBook = async (params: PublishBookParams): Promise<PublishBoo
         }
 
         // Portada: se sube como imagen y en Firestore queda solo el link
-        let coverUrl: string | null = null
+        let coverUrl: string | null = null;
         if (coverJpegBase64) {
             const coverPath = buildCoverPath(bookId)
             uploadedPaths.push(coverPath)
             const coverRef = ref(storage, coverPath)
-            await uploadString(coverRef, coverJpegBase64, "base64", {
-                contentType: JPEG_CONTENT_TYPE,
-            })
+            await uploadBase64Jpeg(coverRef, coverJpegBase64)
             coverUrl = await getDownloadURL(coverRef)
         }
 
@@ -187,10 +216,17 @@ export const publishBook = async (params: PublishBookParams): Promise<PublishBoo
             tags,
             coverUrl,
             visibility,
+            // Un libro gratis siempre guarda null: asi nunca queda un precio viejo suelto
+            price: visibility === "paid" ? price : null,
+            currency: PRICE_CURRENCY,
             publishedAt: new Date().toISOString(),
             // Dato original del epub: se guarda pero no se muestra en la app (ver types/book.types.ts)
             originalAuthor: book.author,
-            chapters: preparedChapters.map((chapter) => ({ index: chapter.index, title: chapter.title })),
+            chapters: preparedChapters.map((chapter) => ({
+                index: chapter.index,
+                title: chapter.title,
+                access: book.chapters[chapter.index].access ?? DEFAULT_CHAPTER_ACCESS,
+            })),
         }
 
         // Esto va al final: asi el Home nunca ve un libro a medias

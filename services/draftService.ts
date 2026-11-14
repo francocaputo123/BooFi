@@ -1,0 +1,163 @@
+import {
+  addDoc, collection, getDocs, getDoc, updateDoc, orderBy, query, serverTimestamp,
+  doc, writeBatch, deleteField, DocumentSnapshot,
+} from "firebase/firestore"
+import { db } from "@/config/firebaseConfig"
+import { handleFirebaseError } from "@/utils/handleFirebaseError"
+import { Draft, DraftCover } from "@/types/draft.types"
+import { chaptersRef } from "@/services/chapterService"
+import { uploadDraftCover, deleteDraftCover } from "@/services/draftCoverService"
+
+/** Referencia a la colección de historias de un usuario */
+const draftsRef = (uid: string) => collection(db, "users", uid, "drafts")
+
+/** Referencia a una historia puntual */
+const draftRef = (uid: string, draftId: string) => doc(draftsRef(uid), draftId)
+
+/**
+ * Crea una historia en la cuenta del usuario.
+ * @param string uid : id del usuario logueado
+ * @param string title : título inicial, puede ir vacío
+ * @param string synopsis : descripción inicial, puede ir vacía
+ * @returns string : id de la historia creada
+ */
+export const createDraft = async (uid: string, title: string, synopsis = ""): Promise<string> => {
+  try {
+    const docRef = await addDoc(draftsRef(uid), {
+      title,
+      synopsis,
+      status: "in_progress",
+      updatedAt: serverTimestamp(),
+    })
+    return docRef.id
+  } catch (error) {
+    throw new Error(handleFirebaseError(error))
+  }
+}
+
+/**
+ * Trae las historias del usuario, la más reciente primero.
+ * @param string uid : id del usuario logueado
+ * @returns Draft[] : lista de historias
+ */
+export const listDrafts = async (uid: string): Promise<Draft[]> => {
+  try {
+    const snapshot = await getDocs(query(draftsRef(uid), orderBy("updatedAt", "desc")))
+    return snapshot.docs.map((draftDoc) => ({
+      id: draftDoc.id,
+      ...(draftDoc.data() as Omit<Draft, "id">),
+    }))
+  } catch (error) {
+    throw new Error(handleFirebaseError(error))
+  }
+}
+
+/**
+ * Trae una historia por id.
+ * @param string uid : id del usuario logueado
+ * @param string draftId : id de la historia
+ * @returns Draft : historia encontrada
+ */
+export const getDraft = async (uid: string, draftId: string): Promise<Draft> => {
+  let snapshot: DocumentSnapshot
+  try {
+    snapshot = await getDoc(draftRef(uid, draftId))
+  } catch (error) {
+    throw new Error(handleFirebaseError(error))
+  }
+
+  // Fuera del try: dentro, handleFirebaseError taparía este mensaje con uno genérico
+  if (!snapshot.exists()) {
+    throw new Error("La historia no existe")
+  }
+  return { id: snapshot.id, ...(snapshot.data() as Omit<Draft, "id">) }
+}
+
+/**
+ * Actualiza los datos de configuración de una historia.
+ * @param string uid : id del usuario logueado
+ * @param string draftId : id de la historia
+ * @param object changes : campos a modificar (los que falten no se tocan)
+ */
+export const updateDraft = async (
+  uid: string, draftId: string,
+  changes: Partial<Pick<Draft, "title" | "status" | "tags" | "synopsis">>
+) => {
+  try {
+    await updateDoc(draftRef(uid, draftId), {
+      ...changes,
+      updatedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    throw new Error(handleFirebaseError(error))
+  }
+}
+
+/**
+ * Cambia la portada de una historia: sube la imagen nueva, guarda su link y borra la anterior.
+ * NOTE: si falla el guardado en Firestore, la imagen recién subida se borra para no dejar archivos sueltos
+ * @param string uid : id del usuario logueado
+ * @param string draftId : id de la historia
+ * @param string localUri : ruta local de la imagen elegida
+ * @param string previousPath : ruta de la portada que se reemplaza, si había una
+ * @returns DraftCover : link y ruta de la portada nueva
+ */
+export const changeDraftCover = async (
+  uid: string, draftId: string, localUri: string, previousPath?: string
+): Promise<DraftCover> => {
+  const cover = await uploadDraftCover(uid, draftId, localUri)
+
+  try {
+    await updateDoc(draftRef(uid, draftId), { ...cover, updatedAt: serverTimestamp() })
+  } catch (error) {
+    await deleteDraftCover(cover.coverPath)
+    throw new Error(handleFirebaseError(error))
+  }
+
+  if (previousPath) await deleteDraftCover(previousPath)
+  return cover
+}
+
+/**
+ * Quita la portada de una historia.
+ * @param string uid : id del usuario logueado
+ * @param string draftId : id de la historia
+ * @param string coverPath : ruta de la portada en Storage
+ */
+export const removeDraftCover = async (uid: string, draftId: string, coverPath: string) => {
+  try {
+    await updateDoc(draftRef(uid, draftId), {
+      coverUrl: deleteField(),
+      coverPath: deleteField(),
+      updatedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    throw new Error(handleFirebaseError(error))
+  }
+  await deleteDraftCover(coverPath)
+}
+
+/**
+ * Borra una historia con todos sus capítulos y su portada.
+ * NOTE: Firestore no borra subcolecciones al borrar el documento padre, por eso se borran los capítulos a mano.
+ * @param string uid : id del usuario logueado
+ * @param string draftId : id de la historia
+ */
+export const deleteDraft = async (uid: string, draftId: string) => {
+  let coverPath: string | undefined
+  try {
+    const draftSnapshot = await getDoc(draftRef(uid, draftId))
+    coverPath = draftSnapshot.data()?.coverPath
+
+    const chaptersSnapshot = await getDocs(chaptersRef(uid, draftId))
+    const batch = writeBatch(db)
+    chaptersSnapshot.docs.forEach((chapterDoc) => batch.delete(chapterDoc.ref))
+    batch.delete(draftRef(uid, draftId))
+    await batch.commit()
+  } catch (error) {
+    throw new Error(handleFirebaseError(error))
+  }
+
+  // Después del batch: si la historia no se pudo borrar, la portada tiene que seguir en su lugar
+  if (coverPath) await deleteDraftCover(coverPath)
+}

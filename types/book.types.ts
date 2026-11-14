@@ -1,4 +1,5 @@
 import { EpubBlock, EpubParsedBook } from "./epub.types"
+import { ChapterAccess } from "./chapter.types"
 export interface Book {
     id: string
     title: string
@@ -11,6 +12,8 @@ export interface Book {
 export interface BookState {
     booksById: Record<string, EpubParsedBook>
     saveBook: (book: EpubParsedBook) => void
+    /* Guarda el texto de un capitulo ya bajado de un libro publicado y lo marca como cargado */
+    setChapterBlocks: (bookId: string, chapterIndex: number, blocks: EpubBlock[]) => void
 }
 
 /*
@@ -23,6 +26,8 @@ export type BookVisibility = "public" | "paid"
 export interface PublishedChapterSummary {
     index: number
     title: string
+    /* Tipo de acceso. Opcional*/
+    access?: ChapterAccess
 }
 
 /* Lo que se guarda en Firestore: documento books/{bookId} */
@@ -38,6 +43,13 @@ export interface PublishedBookData {
     /* Link a la portada que esta en Cloud Storage, o null si el epub no trae */
     coverUrl: string | null
     visibility: BookVisibility
+    /*
+     * Precio en pesos argentinos (entero) cuando visibility es "paid"; null si es gratis.
+     * Se guarda para pasarselo despues a la API de Mercado Pago.
+     */
+    price: number | null
+    /* Moneda del precio. Por ahora siempre ARS */
+    currency: "ARS"
     /* Fecha ISO de publicacion */
     publishedAt: string
     /*
@@ -74,6 +86,8 @@ export interface PublishBookParams {
     /* Portada ya achicada, en base64 y formato JPEG. Solo viaja hasta Storage: no se guarda en Firestore */
     coverJpegBase64: string | null
     visibility: BookVisibility
+    /* Precio en ARS (entero) si el libro es de pago; null si es gratis */
+    price: number | null
 }
 
 /* "duplicate": el usuario ya tenia publicado un libro con ese titulo y no se subio nada */

@@ -1,4 +1,5 @@
 import { EpubBlock, EpubChapter, EpubParsedBook } from "./epub.types";
+import { CatalogBook } from "./catalog.types";
 
 /*
  * Punto de lectura de un usuario dentro de un libro.
@@ -27,6 +28,16 @@ export interface ReadingState {
 export interface ChapterNavigation {
     previousIndex: number | null;
     nextIndex: number | null;
+}
+
+/* Un libro de "Seguir leyendo" en el Home: el libro del catalogo + donde quedo el usuario */
+export interface ContinueReadingItem {
+    book: CatalogBook;
+    progress: ReadingProgress;
+    /* Capitulo actual (empieza en 1, listo para mostrar) */
+    currentChapter: number;
+    /* 0 a 100, entero */
+    percent: number;
 }
 
 export interface ReaderScreenParams {

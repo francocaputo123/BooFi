@@ -26,6 +26,11 @@ export const PUBLISH_MESSAGES = {
 /* Largo maximo de la sinopsis que se guarda (si el epub trae una mas larga se corta con "...") */
 export const MAX_SYNOPSIS_LENGTH = 1000
 
+/* Precio de los libros de pago: pesos argentinos enteros, entre el minimo y el maximo */
+export const PRICE_CURRENCY = "ARS" as const
+export const MIN_PRICE_ARS = 1
+export const MAX_PRICE_ARS = 1000000
+
 /* Peso maximo de la portada ya achicada (en bytes) */
 export const MAX_COVER_BYTES = 200 * 1024
 
@@ -101,10 +106,11 @@ export const PUBLISH_LABELS = {
     SECTION_ACCESS_TYPE: "TIPO DE ACCESO",
     ACCESS_FREE: "Gratis",
     ACCESS_FREE_DESC: "Todos los lectores",
-    ACCESS_PREMIUM: "Solo Premium",
-    ACCESS_PREMIUM_DESC: "Suscriptores activos",
-    ACCESS_PAID: "Pago individual",
-    ACCESS_PAID_DESC: "Precio por capítulo",
+    ACCESS_PAID: "De pago",
+    ACCESS_PAID_DESC: "Los lectores pagan para leer el libro",
+    FIELD_PRICE: "Precio (ARS)",
+    PRICE_PLACEHOLDER: "Ej: 1500",
+    PRICE_HINT: "Solo pesos enteros, sin centavos.",
     SECTION_SCHEDULE: "PROGRAMAR PUBLICACIÓN",
     SECTION_NOTIFY: "NOTIFICAR SEGUIDORES",
     IN_DEVELOPMENT: "En Desarrollo",

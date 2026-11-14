@@ -1,4 +1,4 @@
-import { Text, View,  TextInput ,StyleSheet, KeyboardAvoidingView, ScrollView, Platform, Pressable } from 'react-native';
+import { Text, View,  TextInput ,StyleSheet, KeyboardAvoidingView, ScrollView, Platform, Pressable, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
@@ -11,6 +11,10 @@ import authData from "@/data/authData.json"
 
 //components
 import Card from "@/components/Card"
+import LegalConsent from "@/components/LegalConsent"
+
+//data legal
+import { LEGAL_LABELS } from "@/data/legalTexts"
 
 //types
 import { registerForm ,viewStatus} from '@/types/auth.types';
@@ -36,15 +40,22 @@ const Auth = () => {
   })
 
   const setAuth = authStore((data) => data.setAuthData)
+  const email = authStore((data) => data.email)
   
   const [formView, setFormView] = useState<viewStatus>("login")
 
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string[]>([])
 
   const [success, setSuccess] = useState<string>("")
 
+  // Casillas del registro: hay que marcar las dos para poder crear la cuenta
+  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false)
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState<boolean>(false)
+
   const handleChange = (name : string, value : string) => {
     setError([])
+    setSuccess("")
     
     setForm({
       ...form,
@@ -56,6 +67,8 @@ const Auth = () => {
   const actions = {
 
     handleLogin : async () => {
+      setError([])
+      setSuccess("")
 
       const user = {
         email : form.email,
@@ -79,12 +92,16 @@ const Auth = () => {
       }
 
       try {
+        setLoading(true)
         const data = await authController.loginUser(user)
 
         if(data) {
           setAuth({
             public_id : data.public_id,
-            email : data.email,
+            email : data.email || "",
+            username : data.username,
+            bio : data.bio,
+            photoUrl : data.photoUrl,
             isAuthenticated : true
           })
 
@@ -92,7 +109,9 @@ const Auth = () => {
         }
 
       } catch (error : any) {
-        return setError([error?.message])
+        return setError([error?.message || "Ocurrió un error al iniciar sesión"])
+      } finally {
+        setLoading(false)
       }
 
     },
@@ -108,25 +127,44 @@ const Auth = () => {
 
       const result = registerSchema.safeParse(form)
 
-      if(!result.success) {
-        const errors = result.error.issues.map(error => error.message)
+      // Se juntan los errores del formulario y el de las casillas, así se ven todos de una vez
+      const errors = result.success ? [] : result.error.issues.map(error => error.message)
 
+      if(!acceptedTerms || !acceptedPrivacy) {
+        errors.push(LEGAL_LABELS.NOT_ACCEPTED_ERROR)
+      }
+
+      if(errors.length > 0) {
         return setError(errors)
       }
 
       try {
+          setLoading(true)
           const result = await authController.registerUser(form)
 
           if(result) {
-            setSuccess("Registro exitoso")
+            setSuccess("Registro exitoso. Redirigiendo al inicio de sesión...")
+            setAcceptedTerms(false)
+            setAcceptedPrivacy(false)
+            setError([])
+            setForm({
+              username : "",
+              email : "",
+              password : "",
+              confirmPassword : ""
+            })
             
-            return setTimeout(() => {
+            setTimeout(() => {
+              setSuccess("")
               setFormView("login")
-            },3000)
+            }, 2000)
+            return
           }
 
       } catch (error : any) {
-        return setError([error?.message])
+        return setError([error?.message || "Ocurrió un error al registrarse"])
+      } finally {
+        setLoading(false)
       }
 
     }
@@ -201,6 +239,22 @@ const Auth = () => {
                     )
                   }
                   {
+                    formView === "signup" && (
+                      <LegalConsent
+                      acceptedTerms={acceptedTerms}
+                      acceptedPrivacy={acceptedPrivacy}
+                      onToggleTerms={() => {
+                        setError([])
+                        setAcceptedTerms(!acceptedTerms)
+                      }}
+                      onTogglePrivacy={() => {
+                        setError([])
+                        setAcceptedPrivacy(!acceptedPrivacy)
+                      }}
+                      />
+                    )
+                  }
+                  {
                     formView === "login" && (
                       Object.entries(loginFields).map(([key, value], i) => {
                         if(value.type === "link") {
@@ -247,19 +301,13 @@ const Auth = () => {
                   )
                 }
                 {
-                  success && (
+                  success ? (
                     <View style={styles.successContainer}>
-                      {
-                        error.map((error, i) => {
-                          return(
-                            <Text style={styles.successText} key={i}>
-                              - {error}
-                            </Text>
-                          )
-                        })
-                      }
+                      <Text style={styles.successText}>
+                        {success}
+                      </Text>
                     </View>
-                  )
+                  ) : null
                 }
                 </Card.Body>
                 <Card.Footer>
@@ -268,11 +316,16 @@ const Auth = () => {
                       if(value.type === formView){
                         return(
                           <Pressable
+                          disabled={loading}
                           onPress={actions[value.action as keyof typeof actions]}
                           key={value.label}
                           style={styles.confirmButton}
                           >
-                            <Text style={styles.confirmText}> {value.label} </Text>
+                            {loading ? (
+                              <ActivityIndicator color="#FFFFFF" />
+                            ) : (
+                              <Text style={styles.confirmText}> {value.label} </Text>
+                            )}
                           </Pressable>
                         )
                       }

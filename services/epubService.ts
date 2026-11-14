@@ -94,6 +94,9 @@ export const parseEpubFile = async (
     // Las hojas de estilo definen la negrita/cursiva/alineacion de muchos epubs (ej: los de Calibre)
     const cssRules = await loadCssRules(zip, opfDir, manifestItems);
 
+    // Los titulos reales de los capitulos viven en el indice del epub (toc.ncx o nav.xhtml)
+    const tocTitles = await loadTocTitles(zip, opfDir, packageNode, manifestItems);
+
     const spineItemRefs = normalizeToArray(packageNode.spine.itemref);
     const chapters: EpubChapter[] = [];
     // Una misma imagen puede aparecer varias veces en el libro: se saca del zip una sola vez
@@ -128,11 +131,13 @@ export const parseEpubFile = async (
             }
 
             // La primera pagina que es solo una imagen es la portada: se le pone nombre en vez del nombre del archivo
+            // Para el resto: 1) titulo del indice del epub, 2) un <h1>-<h3> del capitulo, 3) nombre del archivo
             const isImageOnly = blocks.every((block) => block.type === "image");
             const chapterTitle =
                 isImageOnly && chapters.length === 0
                     ? "Portada"
-                    : guessChapterTitle(chapterHtml, manifestItem.href);
+                    : tocTitles.get(buildTocKey(opfDir, manifestItem.href)) ??
+                      guessChapterTitle(chapterHtml, manifestItem.href);
 
             chapters.push({
                 id: idref,
@@ -264,6 +269,86 @@ const loadCssRules = async (zip: JSZip, opfDir: string, manifestItems: any[]) =>
     }
 
     return parseCssRules(allCss);
+};
+
+/* Clave para comparar rutas: sin "#ancla", sin %XX, sin "../" y sin mayusculas */
+const buildTocKey = (baseDir: string, href: string): string =>
+    normalizeForCompare(normalizeZipPath(baseDir + safeDecodeUri(href.split("#")[0])));
+
+/*
+ * Lee el indice del epub y devuelve un mapa "archivo -> titulo del capitulo".
+ * Hay dos formatos y se prueba con los dos:
+ * 1) EPUB 2: toc.ncx (arbol de <navPoint> con <navLabel> y <content src="...">)
+ * 2) EPUB 3: un nav.xhtml (item del manifest con properties="nav") con una lista de links
+ * Si un archivo aparece varias veces (capitulos con ancla dentro del mismo archivo) se queda con el primero.
+ * Si el indice falta o esta roto NO frena la carga: devuelve un mapa vacio y se usan los titulos de respaldo.
+ */
+const loadTocTitles = async (
+    zip: JSZip,
+    opfDir: string,
+    packageNode: any,
+    manifestItems: any[]
+): Promise<Map<string, string>> => {
+    const titles = new Map<string, string>();
+    const addTitle = (baseDir: string, href: string, rawLabel: string) => {
+        const label = decodeHtmlEntities(stripHtmlTags(rawLabel)).trim();
+        if (!href || !label) return;
+        const key = buildTocKey(baseDir, href);
+        if (!titles.has(key)) titles.set(key, label);
+    };
+    const dirOf = (href: string): string =>
+        href.includes("/") ? href.substring(0, href.lastIndexOf("/") + 1) : "";
+
+    // EPUB 3: nav.xhtml
+    try {
+        const navItem = manifestItems.find((item) =>
+            String(item["@_properties"] ?? "").split(/\s+/).includes("nav")
+        );
+        const navFile = navItem ? findZipFile(zip, opfDir, navItem["@_href"]) : null;
+        if (navItem && navFile) {
+            const navHtml = await navFile.async("text");
+            const navBlocks = navHtml.match(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi) ?? [];
+            const tocBlock = navBlocks.find((block) => /epub:type\s*=\s*["'][^"']*\btoc\b/i.test(block));
+            const linkRegex = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+            let match: RegExpExecArray | null;
+            while (tocBlock && (match = linkRegex.exec(tocBlock)) !== null) {
+                addTitle(opfDir + dirOf(navItem["@_href"]), match[1], match[2]);
+            }
+        }
+    } catch (error) {
+        console.warn("[epubService] No se pudo leer el nav del epub:", error);
+    }
+
+    // EPUB 2: toc.ncx
+    try {
+        const spineTocId = packageNode.spine?.["@_toc"];
+        const ncxItem =
+            manifestItems.find((item) => item["@_id"] === spineTocId) ??
+            manifestItems.find((item) => item["@_media-type"] === "application/x-dtbncx+xml");
+        const ncxFile = ncxItem ? findZipFile(zip, opfDir, ncxItem["@_href"]) : null;
+        if (ncxItem && ncxFile) {
+            const ncxData = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" }).parse(
+                await ncxFile.async("text")
+            );
+            const ncxDir = opfDir + dirOf(ncxItem["@_href"]);
+
+            const readNavPoints = (nodes: any) => {
+                for (const navPoint of normalizeToArray(nodes)) {
+                    const labelNode = normalizeToArray(navPoint.navLabel)[0];
+                    const label = labelNode ? extractFirstValue(labelNode.text) : undefined;
+                    const src = navPoint.content?.["@_src"];
+                    if (label && src) addTitle(ncxDir, String(src), String(label));
+                    // Los indices con subniveles anidan navPoint dentro de navPoint
+                    if (navPoint.navPoint) readNavPoints(navPoint.navPoint);
+                }
+            };
+            readNavPoints(ncxData.ncx?.navMap?.navPoint);
+        }
+    } catch (error) {
+        console.warn("[epubService] No se pudo leer el toc.ncx del epub:", error);
+    }
+
+    return titles;
 };
 
 /*

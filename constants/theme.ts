@@ -11,6 +11,8 @@ export const COLORS = {
     dangerText : '#D8000C',
     success: '#D2EED1', 
     successText: '#1B6A31',
+    surfacePressed: '#e3d6c5',
+    link: '#1E90D6'
 }
 
 export const SPACING = {

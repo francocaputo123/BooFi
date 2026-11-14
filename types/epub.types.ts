@@ -4,6 +4,8 @@
  * (Probablemente sirva para sinopsis, si, seguro sirve)
  */
 
+import { ChapterAccess } from "@/types/chapter.types";
+
 export interface EpubChapter {
     id: string;
     title: string;
@@ -11,6 +13,10 @@ export interface EpubChapter {
     textPreview: string;
     /* Capitulo completo ya estructurado (parrafos, titulos, listas...) con su formato */
     blocks: EpubBlock[];
+    /* Tipo de acceso elegido al publicar; si no viene se asume gratis (DEFAULT_CHAPTER_ACCESS) */
+    access?: ChapterAccess;
+    /* Solo libros publicados: false hasta que se baja el texto del capitulo desde Cloud Storage. Si no viene, se asume cargado */
+    isLoaded?: boolean;
 }
 
 export type EpubTextAlign = "left" | "center" | "right" | "justify";
@@ -75,7 +81,19 @@ export interface EpubParsedBook {
     synopsis: string;
     /* Ruta en el celu de la portada tal cual venia en el epub, o null si no trae */
     coverUri: string | null;
+    /* Categorias elegidas por el autor; los EPUB importados no las traen */
+    tags?: string[];
     chapters: EpubChapter[];
+    /* true si el libro viene de Firestore (publicado). Los de Editor/EPUB local no lo traen */
+    isPublished?: boolean;
+    /* false mientras los capitulos de un libro publicado no se bajaron (vienen con blocks vacios). Si no viene, se asume cargado */
+    isContentLoaded?: boolean;
+    /* Si el libro es pago ("paid") o publico ("public") */
+    visibility?: "public" | "paid";
+    /* Precio en ARS si es de pago; null si es gratis */
+    price?: number | null;
+    /* ID del autor que publicó el libro en Firestore */
+    authorId?: string;
 }
 
 /*

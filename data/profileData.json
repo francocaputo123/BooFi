@@ -1,0 +1,37 @@
+{
+    "buttons" : [
+        {
+            "label" : "Mis datos",
+            "action" : "handleMyData",
+            "icon" : "person-outline",
+            "description" : "Nombre de usuario y biografía",
+            "type" : "button"
+        },
+        {
+            "label" : "Mis libros",
+            "action" : "handleMyBooks",
+            "icon" : "book-outline",
+            "description" : "Libros en lectura y comprados",
+            "type" : "button"
+        },
+        {
+            "label" : "Mis ganancias",
+            "action" : "handleMyEarnings",
+            "icon" : "wallet-outline",
+            "description" : "Ventas de tus libros y balance",
+            "type" : "button"
+        },
+        {
+            "label" : "Cerrar sesión",
+            "action" : "loggout",
+            "icon" : "log-out-outline",
+            "type" : "logout"
+        },
+        {
+            "label" : "Eliminar cuenta",
+            "action" : "handleDeleteAccount",
+            "icon" : "trash-outline",
+            "type" : "delete"
+        }
+    ]
+}

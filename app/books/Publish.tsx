@@ -6,6 +6,7 @@ import {
     StyleSheet,
     Switch,
     Text,
+    TextInput,
     View,
 } from "react-native"
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
@@ -16,7 +17,7 @@ import TagSelector from "@/components/ui/TagSelector"
 import SynopsisEditModal from "@/components/ui/SynopsisEditModal"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
 import { AVAILABLE_TAGS, PUBLISH_LABELS } from "@/data/publishData"
-import { publishFormSchema } from "@/schema/publish.schema"
+import { priceSchema, publishFormSchema } from "@/schema/publish.schema"
 import { bookRouteParamsSchema } from "@/schema/reading.schema"
 import bookStore from "@/store/bookStore"
 import authStore from "@/store/authStore"
@@ -24,40 +25,38 @@ import { publishBook } from "@/services/bookService"
 import { prepareCover } from "@/utils/prepareCover"
 import { useAuthorName } from "@/hooks/useAuthorName"
 import { estimateReadingMinutesPerChapter, formatReadingTime } from "@/utils/readingTime"
+import { ChapterAccess } from "@/types/chapter.types"
+import { EpubParsedBook } from "@/types/epub.types"
+import { DEFAULT_CHAPTER_ACCESS } from "@/constants/chapterAccess"
+// TEST TEST
+const ALLOW_PUBLISH_WITHOUT_AUTHOR = __DEV__
+const TEST_AUTHOR_NAME = "Autor de prueba"
+// TEST TEST
+
 
 type PublishStatus = "idle" | "publishing" | "success" | "error" 
 
-/* Opciones de tipo de acceso. Solo la gratuita esta activa: las otras dos son preview del mockup */
-/* Opciones de tipo de acceso. Solo la gratuita esta activa: las otras dos son preview del mockup */
+
+/* Opciones de tipo de acceso (RF7.1). Lo elegido se aplica a todos los capitulos del libro */
 const ACCESS_OPTIONS = [
     {
-        key: "public",
+        key: "free" as const,
         title: PUBLISH_LABELS.ACCESS_FREE,
         description: PUBLISH_LABELS.ACCESS_FREE_DESC,
         icon: "book-outline" as const,
-        isDisabled: false,
     },
     {
-        key: "premium",
-        title: PUBLISH_LABELS.ACCESS_PREMIUM,
-        description: PUBLISH_LABELS.ACCESS_PREMIUM_DESC,
-        // Ionicons no tiene "crown-outline"; diamond-outline da la idea de premium/exclusivo
-        icon: "diamond-outline" as const,
-        isDisabled: true,
-    },
-    {
-        key: "paid",
+        key: "paid" as const,
         title: PUBLISH_LABELS.ACCESS_PAID,
         description: PUBLISH_LABELS.ACCESS_PAID_DESC,
         icon: "cash-outline" as const,
-        isDisabled: true,
     },
 ]
 
 /**
  * Pantalla de publicacion de un libro. Muestra la ficha tecnica que ya trae el epub
  * (titulo, autor y cantidad de capitulos) y permite editar la sinopsis y las categorias.
- * Por ahora solo publica como gratuito: las otras opciones de acceso estan deshabilitadas.
+ * Publica según las opciones de acceso seleccionadas.
  */
 const PublishScreen = () => {
     const router = useRouter()
@@ -70,13 +69,23 @@ const PublishScreen = () => {
     const authorId = authStore((state) => state.public_id)
     // El autor que firma es el usuario logueado (ver profiles/{userId}.username)
     const authorName = useAuthorName()
+    const saveBook = bookStore((state) => state.saveBook)
+    // TEST TEST
+    const effectiveAuthorName =
+    authorName || (ALLOW_PUBLISH_WITHOUT_AUTHOR ? TEST_AUTHOR_NAME : "")
+    // TEST TEST
+
+
 
     // La sinopsis del epub se precarga como valor inicial; el autor puede reescribirla o dejarla
     const [synopsis, setSynopsis] = useState(book?.synopsis ?? "")
-    const [tags, setTags] = useState<string[]>([])
+    const [tags, setTags] = useState<string[]>(book?.tags ?? [])
     const [isSynopsisModalVisible, setIsSynopsisModalVisible] = useState(false)
     const [status, setStatus] = useState<PublishStatus>("idle")
     const [errorMessage, setErrorMessage] = useState<string>("")
+    const [access, setAccess] = useState<ChapterAccess>(DEFAULT_CHAPTER_ACCESS)
+    // El precio se escribe como texto (el TextInput solo maneja strings) y se convierte a numero al publicar
+    const [priceText, setPriceText] = useState("")
 
     const toggleTag = (tag: string) => {
         setTags((current) =>
@@ -96,10 +105,28 @@ const PublishScreen = () => {
             return
         }
 
-        if (!book || !authorId || !authorName) {
+        // El precio solo se valida y se guarda si el libro es de pago
+        const isPaid = access === "paid"
+        let price: number | null = null
+        if (isPaid) {
+            const priceValidation = priceSchema.safeParse(priceText === "" ? NaN : Number(priceText))
+            if (!priceValidation.success) {
+                setStatus("error")
+                setErrorMessage(priceValidation.error.issues[0]?.message ?? "Precio inválido")
+                return
+            }
+            price = priceValidation.data
+        }
+
+        if (!book || !authorId || !effectiveAuthorName) {
             setStatus("error")
             setErrorMessage("Faltan datos para publicar. Volvé a cargar el libro.")
             return
+        }
+        // El acceso elegido se aplica a todos los capitulos del libro
+        const bookWithAccess: EpubParsedBook = {
+            ...book,
+            chapters: book.chapters.map((chapter) => ({ ...chapter, access })),
         }
 
         try {
@@ -107,12 +134,14 @@ const PublishScreen = () => {
             const coverJpegBase64 = await prepareCover(book.coverUri)
             const result = await publishBook({
                 authorId,
-                authorName,
-                book,
+                // TEST TEST
+                authorName: effectiveAuthorName,
+                book: bookWithAccess,
                 synopsis: validation.data.synopsis,
                 tags: validation.data.tags,
                 coverJpegBase64,
-                visibility: "public",
+                visibility: isPaid ? "paid" : "public",
+                price,
             })
 
             if (result.status === "duplicate") {
@@ -120,7 +149,15 @@ const PublishScreen = () => {
                 setErrorMessage(PUBLISH_LABELS.DUPLICATE_TITLE)
                 return
             }
-
+            
+            // Se actualiza el store para que la ficha (Details) muestre el acceso sin recargar nada
+            saveBook({
+                ...bookWithAccess,
+                isPublished: true,
+                visibility: isPaid ? "paid" : "public",
+                price,
+                authorId,
+            })
             setStatus("success")
         } catch (error) {
             setStatus("error")
@@ -250,16 +287,17 @@ const PublishScreen = () => {
 
                 <Text style={styles.sectionTitle}>{PUBLISH_LABELS.SECTION_ACCESS_TYPE}</Text>
 
-                {/* Solo "Gratis" esta seleccionada y activa: las otras dos se muestran deshabilitadas */}
+                {/* El autor elige uno de los tres tipos */}
                 {ACCESS_OPTIONS.map((option) => {
-                    const isSelected = option.key === "public"
+                    const isSelected = option.key === access
                     return (
                         <Pressable
                             key={option.key}
-                            style={[styles.accessOption, option.isDisabled && styles.accessOptionDisabled]}
-                            disabled={option.isDisabled}
+                            style={[styles.accessOption, isSelected && styles.accessOptionSelected]}
+                            onPress={() => setAccess(option.key)}
+                            disabled={isPublishing}
                             accessibilityRole="radio"
-                            accessibilityState={{ selected: isSelected, disabled: option.isDisabled }}
+                            accessibilityState={{ selected: isSelected, disabled: isPublishing }}
                         >
                             <View style={styles.accessIcon}>
                                 <Ionicons name={option.icon} size={20} color={COLORS.textSecondary} />
@@ -274,6 +312,28 @@ const PublishScreen = () => {
                         </Pressable>
                     )
                 })}
+
+                {/* Precio: solo aparece si el libro es de pago. Pesos enteros, sin centavos */}
+                {access === "paid" && (
+                    <View style={styles.priceBox}>
+                        <Text style={styles.fieldLabel}>{PUBLISH_LABELS.FIELD_PRICE}</Text>
+                        <View style={styles.priceRow}>
+                            <Text style={styles.priceSymbol}>$</Text>
+                            <TextInput
+                                style={styles.priceInput}
+                                value={priceText}
+                                // Se dejan solo los numeros: asi no se puede escribir "15,5" ni "abc"
+                                onChangeText={(text) => setPriceText(text.replace(/[^0-9]/g, ""))}
+                                placeholder={PUBLISH_LABELS.PRICE_PLACEHOLDER}
+                                placeholderTextColor={COLORS.textSecondary}
+                                keyboardType="number-pad"
+                                maxLength={7}
+                                editable={!isPublishing}
+                            />
+                        </View>
+                        <Text style={styles.priceHint}>{PUBLISH_LABELS.PRICE_HINT}</Text>
+                    </View>
+                )}
 
                 <View style={styles.sectionWithBadge}>
                     <Text style={styles.sectionTitle}>{PUBLISH_LABELS.SECTION_SCHEDULE}</Text>
@@ -466,8 +526,8 @@ const styles = StyleSheet.create({
         padding: SPACING.m,
         marginBottom: SPACING.s,
     },
-    accessOptionDisabled: {
-        opacity: 0.5,
+    accessOptionSelected: {
+        borderColor: COLORS.primary,
     },
     accessIcon: {
         width: 40,
@@ -507,6 +567,37 @@ const styles = StyleSheet.create({
         height: 10,
         borderRadius: 5,
         backgroundColor: COLORS.primary,
+    },
+    priceBox: {
+        backgroundColor: COLORS.background,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        padding: SPACING.m,
+        marginBottom: SPACING.s,
+    },
+    priceRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: SPACING.s,
+    },
+    priceSymbol: {
+        color: COLORS.text,
+        fontSize: FONTSIZE.l,
+        fontWeight: "700",
+    },
+    priceInput: {
+        flex: 1,
+        color: COLORS.text,
+        fontSize: FONTSIZE.l,
+        paddingVertical: SPACING.s,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    priceHint: {
+        color: COLORS.textSecondary,
+        fontSize: FONTSIZE.xs,
+        marginTop: SPACING.s,
     },
     toggleRow: {
         flexDirection: "row",
