@@ -14,19 +14,18 @@ const NewDraftScreen = () => {
 
   const [title, setTitle] = useState("")
   const [synopsis, setSynopsis] = useState("")
+  // Ruta local de la portada elegida: se sube recién cuando la historia existe (al continuar)
+  const [coverUri, setCoverUri] = useState<string | null>(null)
 
-     // Ruta local de la portada elegida: se sube recién cuando la historia existe (al continuar)
-   const [coverUri, setCoverUri] = useState<string | null>(null)
+  const handlePickCover = async () => {
+    const pickedUri = await pickCoverImage()
+    if (pickedUri) setCoverUri(pickedUri)
+  }
 
-   const handlePickCover = async () => {
-     const pickedUri = await pickCoverImage()
-     if (pickedUri) setCoverUri(pickedUri)
-   }
+  const handleContinue = () => createAndOpenDraft(title.trim(), synopsis.trim(), coverUri)
 
-   const handleContinue = () => createAndOpenDraft(title.trim(), synopsis.trim(), coverUri)
-
-   // Omitir crea la historia sin título ni descripción: se completan después desde Configuración
-   const handleSkip = () => createAndOpenDraft("", "", coverUri)
+  // Omitir crea la historia sin título ni descripción: se completan después desde Configuración
+  const handleSkip = () => createAndOpenDraft("", "", coverUri)
 
   return (
     <View style={styles.container}>
