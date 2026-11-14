@@ -11,6 +11,10 @@ import authData from "@/data/authData.json"
 
 //components
 import Card from "@/components/Card"
+import LegalConsent from "@/components/LegalConsent"
+
+//data legal
+import { LEGAL_LABELS } from "@/data/legalTexts"
 
 //types
 import { registerForm ,viewStatus} from '@/types/auth.types';
@@ -44,6 +48,10 @@ const Auth = () => {
   const [error, setError] = useState<string[]>([])
 
   const [success, setSuccess] = useState<string>("")
+
+  // Casillas del registro: hay que marcar las dos para poder crear la cuenta
+  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false)
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState<boolean>(false)
 
   const handleChange = (name : string, value : string) => {
     setError([])
@@ -119,9 +127,14 @@ const Auth = () => {
 
       const result = registerSchema.safeParse(form)
 
-      if(!result.success) {
-        const errors = result.error.issues.map(error => error.message)
+      // Se juntan los errores del formulario y el de las casillas, así se ven todos de una vez
+      const errors = result.success ? [] : result.error.issues.map(error => error.message)
 
+      if(!acceptedTerms || !acceptedPrivacy) {
+        errors.push(LEGAL_LABELS.NOT_ACCEPTED_ERROR)
+      }
+
+      if(errors.length > 0) {
         return setError(errors)
       }
 
@@ -131,6 +144,8 @@ const Auth = () => {
 
           if(result) {
             setSuccess("Registro exitoso. Redirigiendo al inicio de sesión...")
+            setAcceptedTerms(false)
+            setAcceptedPrivacy(false)
             setError([])
             setForm({
               username : "",
@@ -221,6 +236,22 @@ const Auth = () => {
                           />
                         </View>
                       ))
+                    )
+                  }
+                  {
+                    formView === "signup" && (
+                      <LegalConsent
+                      acceptedTerms={acceptedTerms}
+                      acceptedPrivacy={acceptedPrivacy}
+                      onToggleTerms={() => {
+                        setError([])
+                        setAcceptedTerms(!acceptedTerms)
+                      }}
+                      onTogglePrivacy={() => {
+                        setError([])
+                        setAcceptedPrivacy(!acceptedPrivacy)
+                      }}
+                      />
                     )
                   }
                   {
