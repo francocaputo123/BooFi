@@ -10,17 +10,20 @@ interface BookCardProps {
     width: number
     /* TODO: navegar a la ficha (Sinopsis) cuando esa pantalla pueda leer libros desde Firestore */
     onPress?: () => void
+    /* Solo el carrusel de "Tendencias" muestra la nota sobre la portada */
+    showRating?: boolean
 }
 
 /**
  * Tarjeta de libro (Explorar y Home): portada, titulo y autor.
  * Si el libro es de pago se muestra un cartelito sobre la portada ("Pago $1.500").
- * No hay cartel de estado: un libro publicado se considera completo.
+ * Con showRating y un rating cargado, se muestra la nota arriba a la derecha ("★ 4.8").
  */
-const BookCard = ({ book, width, onPress }: BookCardProps) => {
+const BookCard = ({ book, width, onPress, showRating = false }: BookCardProps) => {
     const isPaid = book.visibility === "paid"
     // Si por algun motivo el libro de pago no trae precio, el cartel dice solo "Pago"
     const badgeText = book.price ? `${PAID_BADGE_LABEL} ${formatPrice(book.price)}` : PAID_BADGE_LABEL
+    const ratingText = showRating && book.rating !== null ? book.rating.toFixed(1) : null
 
     return (
         <Pressable style={{ width }} onPress={onPress} disabled={!onPress}>
@@ -31,6 +34,12 @@ const BookCard = ({ book, width, onPress }: BookCardProps) => {
                     // Los libros sin portada llegan con coverUrl null: se muestra la inicial del titulo
                     <View style={styles.coverPlaceholder}>
                         <Text style={styles.coverInitial}>{book.title.charAt(0).toUpperCase()}</Text>
+                    </View>
+                )}
+
+                {ratingText !== null && (
+                    <View style={styles.ratingBadge}>
+                        <Text style={styles.ratingBadgeText}>★ {ratingText}</Text>
                     </View>
                 )}
 
@@ -67,6 +76,20 @@ const styles = StyleSheet.create({
     coverInitial: {
         color: COLORS.textSecondary,
         fontSize: FONTSIZE.xxxl,
+        fontWeight: "700",
+    },
+    ratingBadge: {
+        position: "absolute",
+        top: SPACING.xs + 2,
+        right: SPACING.xs + 2,
+        backgroundColor: COLORS.text,
+        borderRadius: 8,
+        paddingHorizontal: SPACING.s - 2,
+        paddingVertical: 2,
+    },
+    ratingBadgeText: {
+        color: COLORS.background,
+        fontSize: 10,
         fontWeight: "700",
     },
     paidBadge: {

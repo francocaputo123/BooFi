@@ -2,11 +2,12 @@ import { collection, DocumentData, getDocs, limit, orderBy, query, QueryDocument
 import { db } from "@/config/firebaseConfig"
 import { CatalogBook } from "@/types/catalog.types"
 import { BOOKS_COLLECTION, CATALOG_FETCH_LIMIT, CATALOG_LABELS } from "@/data/catalogData"
+import { parseRating } from "@/utils/parseRating"
 
 /*
  * Convierte un documento de Firestore en un CatalogBook.
  * Se valida cada campo porque Firestore no garantiza la forma de los datos
- * (por ejemplo, un libro cargado a mano puede no traer "tags" o "price").
+ * (por ejemplo, un libro cargado a mano puede no traer "tags", "price" o "rating").
  */
 const mapBookDocument = (snapshot: QueryDocumentSnapshot<DocumentData>): CatalogBook => {
     const data = snapshot.data()
@@ -21,6 +22,8 @@ const mapBookDocument = (snapshot: QueryDocumentSnapshot<DocumentData>): Catalog
         visibility: data.visibility === "paid" ? "paid" : "public",
         // Solo se acepta un entero positivo; cualquier otra cosa se trata como "sin precio"
         price: Number.isInteger(data.price) && data.price > 0 ? data.price : null,
+        // Los libros sin valoraciones no traen "rating": quedan en null y no entran en "Tendencias"
+        rating: parseRating(data.rating),
     }
 }
 

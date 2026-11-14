@@ -1,16 +1,24 @@
-import { FlatList, StyleSheet, Text, useWindowDimensions, View } from "react-native"
+import { FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native"
 import { useRouter } from "expo-router"
 import BookCard from "@/components/BookCard"
 import SearchBar from "@/components/ui/SearchBar"
 import GenreChips from "@/components/ui/GenreChips"
 import FeedbackMessage from "@/components/ui/FeedbackMessage"
 import { COLORS, SPACING, FONTSIZE } from "@/constants/theme"
-import { ALL_GENRES_LABEL, BOOK_GENRES, CATALOG_LABELS, GRID_COLUMNS, GRID_GAP } from "@/data/catalogData"
+import {
+    ALL_GENRES_LABEL,
+    BOOK_GENRES,
+    CATALOG_LABELS,
+    FEATURED_CARD_WIDTH,
+    GRID_COLUMNS,
+    GRID_GAP,
+} from "@/data/catalogData"
 import { useBookSearch } from "@/hooks/useBookSearch"
 import { useEffect } from "react"
 
 /**
- * Pantalla de Explorar: busqueda por titulo o autor, chips de genero y grilla de historias.
+ * Pantalla de Explorar: busqueda por titulo o autor, chips de genero, "Tendencias" (mejor calificados)
+ * y grilla de historias que se muestra por tandas con el boton "Cargar mas".
  * Los datos y la logica viven en useBookSearch; aca solo se dibuja segun el estado.
  */
 const BookSearch = ( props : any) => {
@@ -19,7 +27,11 @@ const BookSearch = ( props : any) => {
     const router = useRouter()
     const {
         books,
+        featuredBooks,
         filteredBooks,
+        paginatedBooks,
+        hasMoreBooks,
+        loadMoreBooks,
         isLoading,
         isRefreshing,
         errorMessage,
@@ -40,6 +52,53 @@ const BookSearch = ( props : any) => {
     }, [genreFromIndex])
 
     const cardWidth = (screenWidth - SPACING.l * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS
+
+    const openDetails = (bookId: string) => {
+        router.push({ pathname: "/books/Details", params: { id: bookId } })
+    }
+
+    /*
+     * Cabecera y pie se pasan como ELEMENTOS ya armados, no como funciones. Si se pasara una funcion
+     * nueva en cada render, React la tomaria por un componente distinto y la desmontaria y volveria a
+     * montar cada vez (ej. al tocar "Cargar mas"): el carrusel de Tendencias perderia su scroll y
+     * volveria a descargar las portadas.
+     */
+    const listHeader = (
+        <View>
+            {/* Con una busqueda o un genero activos, "Tendencias" se oculta: el usuario esta buscando algo puntual */}
+            {!hasActiveFilters && featuredBooks.length > 0 && (
+                <View style={styles.featuredSection}>
+                    <Text style={styles.sectionLabel}>{CATALOG_LABELS.SECTION_FEATURED}</Text>
+                    <FlatList
+                        horizontal
+                        data={featuredBooks}
+                        keyExtractor={(book) => `featured-${book.id}`}
+                        contentContainerStyle={styles.featuredList}
+                        showsHorizontalScrollIndicator={false}
+                        renderItem={({ item }) => (
+                            <BookCard
+                                book={item}
+                                width={FEATURED_CARD_WIDTH}
+                                showRating
+                                onPress={() => openDetails(item.id)}
+                            />
+                        )}
+                    />
+                </View>
+            )}
+            <Text style={styles.sectionLabel}>{CATALOG_LABELS.SECTION_ALL}</Text>
+        </View>
+    )
+
+    const listFooter = hasMoreBooks ? (
+        <Pressable
+            style={({ pressed }) => [styles.loadMoreButton, pressed && styles.loadMorePressed]}
+            onPress={loadMoreBooks}
+            accessibilityRole="button"
+        >
+            <Text style={styles.loadMoreText}>{CATALOG_LABELS.LOAD_MORE}</Text>
+        </Pressable>
+    ) : null
 
     const renderResults = () => {
         if (isLoading) {
@@ -79,26 +138,25 @@ const BookSearch = ( props : any) => {
         }
 
         return (
-            <>
-                <Text style={styles.sectionLabel}>{CATALOG_LABELS.SECTION_ALL}</Text>
-                <FlatList
-                    data={filteredBooks}
-                    keyExtractor={(book) => book.id}
-                    numColumns={GRID_COLUMNS}
-                    columnWrapperStyle={styles.gridRow}
-                    renderItem={({ item }) => (
-                        <BookCard
-                            book={item}
-                            width={cardWidth}
-                            onPress={() => router.push({ pathname: "/books/Details", params: { id: item.id } })}
-                        />
-                    )}
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
-                    refreshing={isRefreshing}
-                    onRefresh={refreshBooks}
-                />
-            </>
+            <FlatList
+                data={paginatedBooks}
+                keyExtractor={(book) => book.id}
+                numColumns={GRID_COLUMNS}
+                columnWrapperStyle={styles.gridRow}
+                ListHeaderComponent={listHeader}
+                ListFooterComponent={listFooter}
+                renderItem={({ item }) => (
+                    <BookCard
+                        book={item}
+                        width={cardWidth}
+                        onPress={() => openDetails(item.id)}
+                    />
+                )}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                refreshing={isRefreshing}
+                onRefresh={refreshBooks}
+            />
         )
     }
 
@@ -145,6 +203,12 @@ const styles = StyleSheet.create({
         flex: 1,
         marginTop: SPACING.m,
     },
+    featuredSection: {
+        marginBottom: SPACING.s,
+    },
+    featuredList: {
+        gap: GRID_GAP,
+    },
     sectionLabel: {
         marginBottom: SPACING.m,
         color: COLORS.textSecondary,
@@ -154,6 +218,25 @@ const styles = StyleSheet.create({
     },
     gridRow: {
         gap: GRID_GAP,
+    },
+    loadMoreButton: {
+        alignSelf: "center",
+        marginTop: SPACING.s,
+        marginBottom: SPACING.l,
+        paddingHorizontal: SPACING.l,
+        paddingVertical: SPACING.s + 2,
+        borderRadius: 12,
+        backgroundColor: COLORS.surface,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    loadMorePressed: {
+        backgroundColor: COLORS.surfacePressed,
+    },
+    loadMoreText: {
+        color: COLORS.text,
+        fontSize: FONTSIZE.s,
+        fontWeight: "600",
     },
 })
 

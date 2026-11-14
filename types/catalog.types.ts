@@ -14,6 +14,8 @@ export interface CatalogBook {
     visibility: BookVisibility
     /* Precio en pesos argentinos (entero). null si el libro es gratis o no trae precio */
     price: number | null
+    /* Calificacion promedio de 0 a 5 (un decimal). null si el libro todavia no tiene valoraciones */
+    rating: number | null
 }
 
 /* Lo que elige el usuario en Explorar. genre null = "Todos" */

@@ -7,6 +7,18 @@ export const CATALOG_FETCH_LIMIT = 100
 export const GRID_COLUMNS = 3
 export const GRID_GAP = 12
 
+/* RF3.3: cuantas historias entran en el carrusel de "Tendencias" */
+export const FEATURED_BOOKS_LIMIT = 6
+
+/* RF3.3: ancho de cada tarjeta del carrusel de "Tendencias" */
+export const FEATURED_CARD_WIDTH = 110
+
+/*
+ * RF3.4: cuantos libros se muestran por tanda en "Todas las historias".
+ * Es multiplo de GRID_COLUMNS para que cada tanda complete filas enteras (9 = 3 filas de 3).
+ */
+export const CATALOG_PAGE_SIZE = 9
+
 /*
  * Generos disponibles para filtrar.
  * TODO: alinear con la lista de tags que use la pantalla de Publicar. El mockup muestra "Clásicos",
@@ -43,7 +55,9 @@ export const PAID_BADGE_LABEL = "Pago"
 export const CATALOG_LABELS = {
     SCREEN_TITLE: "Explorar",
     SEARCH_PLACEHOLDER: "Buscar título o autor",
+    SECTION_FEATURED: "Tendencias esta semana",
     SECTION_ALL: "Todas las historias",
+    LOAD_MORE: "Cargar más",
     LOADING: "Cargando historias...",
     LOAD_ERROR: "No pudimos cargar las historias. Revisá tu conexión e intentá de nuevo.",
     RETRY: "Reintentar",
