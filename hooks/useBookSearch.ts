@@ -102,15 +102,6 @@ export const useBookSearch = () => {
     const paginatedBooks = useMemo(() => filteredBooks.slice(0, visibleCount), [filteredBooks, visibleCount])
     const hasMoreBooks = visibleCount < filteredBooks.length
 
-    // Los libros sin rating no entran en "Tendencias": un carrusel de "destacados" sin nota no tendria sentido
-    const featuredBooks = useMemo(
-        () => sortBooksByRating(books.filter((book) => book.rating !== null), FEATURED_BOOKS_LIMIT),
-        [books]
-    )
-
-    const paginatedBooks = useMemo(() => filteredBooks.slice(0, visibleCount), [filteredBooks, visibleCount])
-    const hasMoreBooks = visibleCount < filteredBooks.length
-
     const hasActiveFilters = searchText.trim() !== "" || selectedGenre !== null || onlyPaid
 
     return {
