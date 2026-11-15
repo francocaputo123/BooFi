@@ -16,6 +16,8 @@ export interface CatalogBook {
     price: number | null
     /* Cantidad de capitulos: hace falta para calcular el % de lectura en el Home. 0 si el libro no trae la lista */
     chapterCount: number
+    /* Calificacion promedio de 0 a 5 (un decimal). null si el libro todavia no tiene valoraciones */
+    rating: number | null
 }
 
 /* Lo que elige el usuario en Explorar. genre null = "Todos" */
